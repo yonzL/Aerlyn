@@ -1,0 +1,26 @@
+[package]
+name = "aerlyn-wire"
+version = "1.0.0"
+edition = "2021"
+rust-version = "1.85"
+license = "AGPL-3.0-only"
+description = "Aerlyn Wire：面向远程桌面的直连二进制协议核心（握手、控制、媒体、文件、剪贴板、音频与反馈）"
+repository = "https://github.com/yonzL/Aerlyn"
+readme = "README.md"
+keywords = ["remote-desktop", "protocol", "quic", "codec"]
+categories = ["network-programming"]
+exclude = ["target/**", ".git/**"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.11"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+
+[profile.dev]
+opt-level = 1
