@@ -591,9 +591,8 @@ pub fn direction_allowed(name: &str, side: Side) -> bool {
         | "InputState" | "InputStatus" | "HostStats" | "Saved" | "SessionInfo" | "SessionEnded"
         | "ControlOwner" => matches!(side, Client),
         "FileOffer" | "FileGet" | "FileList" | "FileCancel" => matches!(side, Host),
-        "FileAccept" | "FileMeta" | "FileListing" | "FileDone" | "FileError" => {
-            matches!(side, Client)
-        }
+        "FileAccept" | "FileMeta" | "FileListing" => matches!(side, Client),
+        "FileDone" | "FileError" => true,
         "ClipPull" | "AudioStart" | "AudioStop" => matches!(side, Host),
         "ClipOffer" | "ClipAccept" | "ClipDone" => true,
         "Screenshot" | "SendCad" | "FileMkdir" | "FileDelete" | "FileRename" | "ShareRequest" => {

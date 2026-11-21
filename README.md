@@ -8,7 +8,7 @@ Aerlyn Wire 是面向远程桌面与设备运维场景的直连二进制会话�
 
 ## 文档
 
-- [协议规范 1.0.0](docs/protocol.md) —— 线格式、状态机、常量与不变量的唯一权威。
+- [协议规范 1.1.0](docs/protocol.md) —— 线格式、状态机、常量与不变量的唯一权威。
 - [需求条款](docs/65-aerlyn-wire-requirements-from-code.md) —— 从实现反推的需求 ID 与验收证据。
 - [实现状态](docs/51-aerlyn-wire-implementation-status.md) 与 [漂移审计](docs/52-protocol-drift-audit.md) —— 历史审计档案。
 - [设计档案](docs/45-protocol-spec-v4.md) —— 1.0.0 冻结前的设计与决策记录。
@@ -24,4 +24,4 @@ MSRV：Rust 1.85。
 
 ## 版本
 
-当前库版本 **1.0.0**；线协议 `proto_version = 400`，ALPN `aerlyn/4` / `aerlyn/4-tcp`。
+当前库版本 **1.1.0**；线协议 `proto_version = 400`，ALPN `aerlyn/4` / `aerlyn/4-tcp`。

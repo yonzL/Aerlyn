@@ -1,15 +1,15 @@
 ---
-title: Aerlyn Wire 协议规范 1.0.0
-version: 1.0.0
+title: Aerlyn Wire 协议规范 1.1.0
+version: 1.1.0
 wire_proto_version: 400
 alpn: aerlyn/4
-status: 1.0.0（正式版）
+status: 1.1.0（正式版）
 date: 2026-11-21
 ---
 
-# Aerlyn Wire 协议规范 1.0.0
+# Aerlyn Wire 协议规范 1.1.0
 
-Aerlyn Wire 是桌面远控/远程桌面场景的二进制会话协议：八个并行平面（control / input / video / file / cursor / audio / feedback / clipboard）共享一条已认证的 QUIC 连接（可降级为 TCP），每个平面独立流、独立优先级、独立背压。本文是 1.0.0 的完整线格式与状态机规范。
+Aerlyn Wire 是桌面远控/远程桌面场景的二进制会话协议：八个并行平面（control / input / video / file / cursor / audio / feedback / clipboard）共享一条已认证的 QUIC 连接（可降级为 TCP），每个平面独立流、独立优先级、独立背压。本文是 1.1.0 的完整线格式与状态机规范。
 
 **只有本文的数值与布局是规范性的。** 常量名指向 `crates/aerlyn-wire` 中的定义处，便于逐条核对。
 
@@ -334,7 +334,7 @@ ResumeTicket { id: u64, nonce: [16]u8, exp_ms: u64 }
 
 ### 6.4 DATAGRAM 承载
 
-QUIC DATAGRAM 路径并行存在，用于低延迟：一帧切成 ≤ `MAX_FRAGMENTS = 1024` 个数据报，单报 ≤ MTU 1100 B（头 20 B + 载荷 1080 B），因此单帧上限约 1.05 MiB。
+QUIC DATAGRAM 路径并行存在，用于低延迟：一帧切成 ≤ `MAX_VIDEO_FRAGMENTS = 1024` 个数据报，单报 ≤ MTU 1100 B（头 20 B + 载荷 1080 B），因此单帧上限约 1.05 MiB。
 
 数据报头（20 B，大端）：
 
@@ -437,12 +437,12 @@ QUIC DATAGRAM 路径并行存在，用于低延迟：一帧切成 ≤ `MAX_FRAGM
 
 | `type` | 名称 | 方向 | 布局 |
 |---|---|---|---|
-| 1 | `FILE_CHUNK` | H→C | 8 B `offset u64` + 块数据（≤ 4 MiB） |
-| 2 | `FILE_ACK` | C→H | 10 B `received_upto u64\|credit u16` |
-| 3 | `FILE_END` | H→C | 32 B `sha256[32]` |
+| 1 | `FILE_CHUNK` | 双向（上传 C→H，下载 H→C） | 8 B `offset u64` + 块数据（≤ 4 MiB） |
+| 2 | `FILE_ACK` | 反向于当前块流 | 10 B `received_upto u64\|credit u16` |
+| 3 | `FILE_END` | 同 `FILE_CHUNK` 方向 | 32 B `sha256[32]` |
 | 4 | `FILE_ERROR` | 双向 | 8 B `task_id u32\|code u16\|detail_len u16` + UTF-8 说明（≤ 4 096 B） |
-| 5 | `FILE_CHUNK_ZSTD` | H→C | 12 B `offset u64\|uncompressed_len u32` + zstd 数据 |
-| 6 | `FILE_RESUME_HINT` | C→H | 12 B `task_id u32\|resume_offset u64` |
+| 5 | `FILE_CHUNK_ZSTD` | 同 `FILE_CHUNK` 方向 | 12 B `offset u64\|uncompressed_len u32` + zstd 数据 |
+| 6 | `FILE_RESUME_HINT` | 反向于当前块流 | 12 B `task_id u32\|resume_offset u64` |
 
 协商类消息（`FileOffer`/`FileAccept`/`FileDone`/`FileCancel`/`FileGet`/`FileList`/`FileListing`/`FileMeta`/`FileMkdir`/`FileRename`/`FileDelete`）走 ch0。
 
@@ -486,6 +486,18 @@ QUIC DATAGRAM 路径并行存在，用于低延迟：一帧切成 ≤ `MAX_FRAGM
 ### 8.7 错误
 
 `30` FileTooLarge、`31` DiskFull、`32` FileLocked、`33` PathInvalid、`34` ShaMismatch、`35` ResumeMetaMismatch。错误携带 `task_id`，接收方据此终止该任务并释放窗口。
+
+### 8.6 上传与下载
+
+**上传（push，控制端发文件给主机）**
+
+`FileOffer`(C→H) → `FileAccept`(H→C) → `FILE_CHUNK`(C→H) / `FILE_ACK`(H→C) → `FILE_END`(C→H) → `FileDone`(H→C)。
+
+**下载（pull，主机发文件给控制端）**
+
+`FileGet`(C→H) → `FileMeta`(H→C) → `FILE_CHUNK`(H→C) / `FILE_ACK`(C→H) → `FILE_END`(H→C) → `FileDone`(C→H)。
+
+两条流共用 ch3 的 `FILE_CHUNK`/`FILE_ACK`/`FILE_END`；方向由 `FileOffer` 或 `FileGet` 决定，控制面不得只按消息名判断方向。
 
 ---
 
@@ -599,8 +611,8 @@ VideoStop Welcome
 | 方向 | 消息 |
 |---|---|
 | C→H | Hello, Auth, Resume, ChannelHello, VideoConfig, VideoStop, RequestKeyframe, InputConfig, DecodeError, FileOffer, FileGet, FileList, FileCancel, ClipPull, AudioStart, AudioStop, Screenshot, SendCad, FileMkdir, FileDelete, FileRename, ShareRequest |
-| H→C | Challenge, Welcome, ResumeResult, ChannelWelcome, Rejected, VideoReady, CodecConfig, VideoAdjusted, DisplayList, DisplayChanged, InputState, InputStatus, HostStats, Saved, SessionInfo, SessionEnded, ControlOwner, FileAccept, FileMeta, FileListing, FileDone, FileError |
-| 双向 | Bye, Error, Ok, Ping, Pong, PlanePriorities, ClipOffer, ClipAccept, ClipDone |
+| H→C | Challenge, Welcome, ResumeResult, ChannelWelcome, Rejected, VideoReady, CodecConfig, VideoAdjusted, DisplayList, DisplayChanged, InputState, InputStatus, HostStats, Saved, SessionInfo, SessionEnded, ControlOwner, FileAccept, FileMeta, FileListing |
+| 双向 | Bye, Error, Ok, Ping, Pong, PlanePriorities, ClipOffer, ClipAccept, ClipDone, FileDone, FileError |
 
 表中未列出的名字一律视为非法方向并报 `WrongDirection`。
 
@@ -613,7 +625,7 @@ VideoStop Welcome
 | `VideoConfig` / `VideoReady` | `req_id` 必须成对回显；`VideoReady` 还须回 `width`/`height` |
 | `PlanePriorities` | `priorities` 长度恒为 8；`ack: true` 必须回显同一 `req_id` |
 | `FileOffer` | `block_size` 64 KiB – 4 MiB；`credit` 2 – 64，接收方值必须被采纳 |
-| `FileGet` | `dir` 与 `name` 必填，`offset` 为续传起点；仅 C→H |
+| `FileGet` | `dir` 与 `name` 必填，`offset` 为续传起点；仅 C→H；host 回 `FileMeta` 后启动下载块流 |
 | `FileList` | `limit` 取值 1 – 2 000，缺省 500；仅 C→H；越界报「FileList.limit must be 1..=2000」 |
 | `FileCancel` | 携带 `task_id`；未知任务报 `UnknownTask` |
 | `Resume` | `ticket_id` 必须对应未过期票据；`nonce` 必须与票据一致 |
@@ -621,7 +633,7 @@ VideoStop Welcome
 
 ### 12.4 目录浏览
 
-`FileList`（C→H，`path` + `limit`）→ `FileListing`（H→C，条目数组 + 是否还有更多）。条目含名字、类型、大小、修改时间。`FileGet` 用于取单个条目元数据，返回 `FileMeta`。`FileList` 分页由客户端按 `limit` 自行循环，协议不提供游标。
+`FileList`（C→H，`path` + `limit`）→ `FileListing`（H→C，条目数组 + 是否还有更多）。条目含名字、类型、大小、修改时间。`FileGet` 用于请求一个文件的内容下载：host 先回 `FileMeta`，随后按 `offset` 发送 `FILE_CHUNK`；条目元数据浏览应使用 `FileList`。`FileList` 分页由客户端按 `limit` 自行循环，协议不提供游标。
 
 ---
 
