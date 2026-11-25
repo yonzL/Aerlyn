@@ -1,10 +1,10 @@
 # T1–T22 验收矩阵（0.4.0 快照）
 
-> 快照时间：2026-11-19。协议是 `0.4.0` 开发线；T1–T22 全绿是验收输入，不是 1.0.0 冻结结论。docs/58 仍有 D3–D9/P1 缺口，冻结需这些条款关闭后由用户明确批准。
-> 判据来源：V3 T1–T15 见 `docs/41-protocol-spec-v3.md:706-720`；V4 T16–T22 见
-> `docs/45-protocol-spec-v4.md` §6.1。
+> 快照时间：2026-11-19。协议是 `0.4.0` 开发线；T1–T22 全绿是验收输入，不是 1.0.0 冻结结论。历史审计快照仍有 D3–D9/P1 缺口，冻结需这些条款关闭后由用户明确批准。
+> 判据来源：V3 T1–T15 见历史 V3 规范（未随 standalone 迁移）；V4 T16–T22 见
+> `docs/design/protocol-v4-archive.md` §6.1。
 > 状态：**绿 = 有可复现证据且满足判据；黄 = 只实现了一部分或只有局部证据；红 = 未实现/未测/不满足**。
-> 本表不允许把“设计”或“局部单测”当成达标；逐项证据与边界见 `docs/52-protocol-drift-audit.md`，条款级缺口与收敛路线见 `docs/58`、`docs/59`。
+> 本表不允许把“设计”或“局部单测”当成达标；逐项证据与边界见 `docs/architecture/drift-audit.md`，条款级缺口与收敛路线见历史审计快照（未随 standalone 迁移）。
 
 ## 1. 汇总
 
@@ -37,7 +37,7 @@
 | T15 | 焦点切换 | `HostSession::notify_focus(focused, display)`：失焦时 `focus_cap=10`、发 `VideoAdjusted{actual_fps:10,max_fps:60}`，恢复时清 cap、发 `actual_fps:60`；`send_video_rects` 用 effective cap 限帧。测试 `focus_loss_updates_actual_fps_and_throttles_video` 在 200 ms 内收到通知，失焦 3 帧只发 1 帧，恢复后 3/3 | 绿 | 焦点事件来源由调用方提供；应用窗口失焦未接 |
 | T16 | 会话内编码切换 | `HostSession::switch_codec`：会话内 H264→H265，旧流 `StreamEnd{CODEC_SWITCH}`，新 `VideoReady`/`CodecConfig`/`StreamHello`，新流首帧 KEY，`frame_id` 1..5→6 连续；测试 `codec_switches_mid_stream_with_continuous_frame_ids` 在切换前后各发 5/1 帧，并从切换开始到新 KEY 观测客户端耗时 <300 ms；`session_id` 不变 | 绿 | 协议级切换已达标；真实编码器/五编码逐一负载切换与 VM 抓屏另行扩展 |
 | T17 | 解码失败回落 | `HostSession::handle_decode_error` + `DecodeFailureTracker`：注入 H264 `DecodeError` 后 host 先发 KEY（frame_id 1/2）；5 s 内第 3 次按剩余候选切到 H265，发 `VideoReady`/`CodecConfig`，新关键帧 frame_id 3，会话不断；全失败发 `Error{CodecUnsupported}` + `Bye`；测试 `decode_errors_request_keyframe_then_fall_back_within_same_session`、`decode_errors_exhaust_all_codecs_and_close_the_session` | 绿 | 协议级回落已达标；真实解码器错误注入仍可扩展 |
-| T18 | 五编码矩阵 | 五编码 1080p60 软件基线：H.264 87.1 / H.265 66.9 / VP8 85.9 / VP9 77.5 / AV1 73.2 编码 fps，解码 582–1188 fps，120/120 帧；H.264 实时全链路：软件 capture/encode 59.4、decode 59.5、Win32 present 59.2 fps、595/595 帧；硬件 `h264_amf` capture/encode 60.4、decode 59.3、present 59.1 fps、606/606 帧，复跑 59.1–59.3、预热 201–214 ms；`max_fps=30` 时 host 29.4、present 29.3 fps；见 `docs/54` | 绿 | 五编码均 ≥30 fps，硬编可用时 ≥55 fps，实际 fps ≤ `max_fps`；`h264_mf` 不稳定仅作对照；T16 五编码会话内切换、VM 交互桌面抓屏另行跟踪 |
+| T18 | 五编码矩阵 | 五编码 1080p60 软件基线：H.264 87.1 / H.265 66.9 / VP8 85.9 / VP9 77.5 / AV1 73.2 编码 fps，解码 582–1188 fps，120/120 帧；H.264 实时全链路：软件 capture/encode 59.4、decode 59.5、Win32 present 59.2 fps、595/595 帧；硬件 `h264_amf` capture/encode 60.4、decode 59.3、present 59.1 fps、606/606 帧，复跑 59.1–59.3、预热 201–214 ms；`max_fps=30` 时 host 29.4、present 29.3 fps；基准原始记录未随 standalone 迁移 | 绿 | 五编码均 ≥30 fps，硬编可用时 ≥55 fps，实际 fps ≤ `max_fps`；`h264_mf` 不稳定仅作对照；T16 五编码会话内切换、VM 交互桌面抓屏另行跟踪；基准原始记录未随 standalone 迁移 |
 | T19 | 4:4:4 / 无损 | H264 High444 `yuv444p`、H265 RExt `yuv444p10le`、VP9 Profile1 `yuv444p`、AV1 High `yuv444p` 各 30 帧 LOSSLESS；码率 805/421/703/340 kbps，均 ≤8 Mbps；文字图四宫格逐字可读；`negotiate` 单测覆盖四编码 profile/chroma/10-bit | 绿 | 质量档协商与四编码 4:4:4/无损编码已证；运行时编码器切档未接 |
 | T20 | 音频同步 | 本地 H.264+Opus 10 s：`CLIENT_AUDIO` p95=69 ms（SLO-AUDIO-1 ≤150）、`CLIENT_AV av_drift_ms=-10.5`（SLO-AUDIO-2 ≤20）、1195 个包播放、dropped=0；`--audio-jitter-ms 200` 对 RED 到达做 0–200 ms 应用层调度，`--audio-drop-every 10` 注入 125 个丢帧，RED 恢复 169 个包，视频仍 60.6 fps；`--av-sync` 首帧门控已实测 | 绿 | 应用层注入而非 OS netem；连续唇同步、真实网络抖动/丢包仍可用更强测试替换 |
 | T21 | 每 viewer 公平 | `opsdesk-service::viewers`：`ViewerLedger` 每 viewer 独立在途字节/credit/ack 基线/最后发送时间，`ViewerSet::tick` 独立丢弃慢 viewer 的帧；`plan()` 合并最高 fps、最高码率、最严格分辨率、active codec。600 帧 60 fps 模拟：1 active 600/600 发送，3 个慢背景 viewer 均 <200 帧且 skipped>0；active 不被标记 slow；慢 viewer ack 后下一 KEY 恢复。测试 `background_viewers_are_capped_and_do_not_starve_active`、`slow_viewer_recovers_on_key_after_ack`、`shared_plan_uses_highest_fps_bitrate_and_strictest_resolution` | 绿 | 协议级账本/调度已达标；真实 4 条 QUIC 会话与共享编码器接线未做 |
@@ -77,6 +77,6 @@ lan_probe recv-file --addr 127.0.0.1:9475 --ca certs/ca.crt --server-name aerlyn
 ## 4. 结论
 
 当前是 **22 绿 / 0 黄 / 0 红**。T1–T22 的汇总计数已由 `spec_consistency::acceptance_matrix_counts_match_docs` 锁定；逐项证据仍需按本表复验。
-本轮只把判据、证据和缺口固定下来，避免把局部测试当成 V4 达标。1.0.0 冻结审计与前置条件见 [`docs/57-p0-freeze-audit.md`](57-p0-freeze-audit.md)；22/0/0 是冻结输入，不是自动批准。
-表格行数与状态计数已由 `crates/aerlyn-wire/tests/spec_consistency.rs` 的
-`acceptance_matrix_counts_match_docs` 锁定，并同步检查 docs/51、docs/52。
+本轮只把判据、证据和缺口固定下来，避免把局部测试当成 V4 达标。1.0.0 冻结审计与前置条件见 [实现状态](implementation-status.md)；22/0/0 是冻结输入，不是自动批准。
+表格行数与状态计数已由 `tests/spec_consistency.rs` 的
+`acceptance_matrix_counts_match_docs` 锁定，并同步检查 docs/architecture/implementation-status.md、docs/architecture/drift-audit.md。

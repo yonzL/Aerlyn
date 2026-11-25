@@ -17,17 +17,16 @@ use aerlyn_wire::plane::{
 };
 use aerlyn_wire::{MAX_EXTENSIONS, MAX_EXT_BYTES};
 
-const SPEC: &str = include_str!("../docs/45-protocol-spec-v4.md");
-const ACCEPTANCE_MATRIX: &str = include_str!("../docs/53-t1-t22-acceptance-matrix.md");
-const STATUS_DOC: &str = include_str!("../docs/51-aerlyn-wire-implementation-status.md");
-const DRIFT_DOC: &str = include_str!("../docs/52-protocol-drift-audit.md");
-const REQUIREMENTS_DOC: &str =
-    include_str!("../docs/65-aerlyn-wire-requirements-from-code.md");
+const SPEC: &str = include_str!("../docs/design/protocol-v4-archive.md");
+const ACCEPTANCE_MATRIX: &str = include_str!("../docs/architecture/acceptance-matrix.md");
+const STATUS_DOC: &str = include_str!("../docs/architecture/implementation-status.md");
+const DRIFT_DOC: &str = include_str!("../docs/architecture/drift-audit.md");
+const REQUIREMENTS_DOC: &str = include_str!("../docs/architecture/requirements.md");
 
 fn control_registry() -> &'static str {
     let start = SPEC
         .find("### 7.5 control 消息注册表")
-        .expect("docs/45 缺少 §7.5 control 注册表");
+        .expect("docs/design/protocol-v4-archive.md 缺少 §7.5 control 注册表");
     let rest = &SPEC[start..];
     let end = rest.find("\n---").expect("§7.5 缺少结束分隔线");
     &rest[..end]
@@ -36,7 +35,7 @@ fn control_registry() -> &'static str {
 fn extension_section() -> &'static str {
     let start = SPEC
         .find("#### 7.7.2 TLV 扩展容器")
-        .expect("docs/45 缺少 §7.7.2 TLV 扩展容器");
+        .expect("docs/design/protocol-v4-archive.md 缺少 §7.7.2 TLV 扩展容器");
     let rest = &SPEC[start..];
     let end = rest
         .find("### 7.8 常驻会话编排")
@@ -47,7 +46,7 @@ fn extension_section() -> &'static str {
 fn data_plane_registry() -> &'static str {
     let start = SPEC
         .find("#### 7.7.1 二进制 type 注册表")
-        .expect("docs/45 缺少 §7.7.1 二进制 type 注册表");
+        .expect("docs/design/protocol-v4-archive.md 缺少 §7.7.1 二进制 type 注册表");
     let rest = &SPEC[start..];
     let end = rest
         .find("### 7.8 常驻会话编排")
@@ -58,7 +57,7 @@ fn data_plane_registry() -> &'static str {
 fn control_field_section() -> &'static str {
     let start = SPEC
         .find("#### 7.5.1 关键 control JSON 字段")
-        .expect("docs/45 缺少 §7.5.1 关键 control JSON 字段");
+        .expect("docs/design/protocol-v4-archive.md 缺少 §7.5.1 关键 control JSON 字段");
     let rest = &SPEC[start..];
     let end = rest
         .find("恢复票不是独立消息")
@@ -154,12 +153,12 @@ fn control_field_registry_matches_spec() {
         let block = struct_block(src, name);
         assert!(
             section.contains(&format!("`{name}`")),
-            "docs/45 §7.5.1 未登记 {name}"
+            "docs/design/protocol-v4-archive.md §7.5.1 未登记 {name}"
         );
         for field in *fields {
             assert!(
                 section.contains(&format!("`{field}`")),
-                "docs/45 §7.5.1 的 {name} 缺少字段 {field}"
+                "docs/design/protocol-v4-archive.md §7.5.1 的 {name} 缺少字段 {field}"
             );
             assert!(
                 block.contains(&format!("pub {field}:")),
@@ -177,7 +176,7 @@ fn control_registry_matches_spec() {
         assert!(seen.insert(*name), "CONTROL_MESSAGE_TYPES 重复登记 {name}");
         assert!(
             section.contains(&format!("`{name}`")),
-            "docs/45 §7.5 未登记 control 类型 {name}"
+            "docs/design/protocol-v4-archive.md §7.5 未登记 control 类型 {name}"
         );
     }
 }
@@ -186,7 +185,7 @@ fn control_registry_matches_spec() {
 fn published_error_codes_match_spec() {
     let section_start = SPEC
         .find("### 7.4 错误码")
-        .expect("docs/45 缺少 §7.4 错误码");
+        .expect("docs/design/protocol-v4-archive.md 缺少 §7.4 错误码");
     let section = &SPEC[section_start..];
     let end = section.find("\n---").expect("§7.4 缺少结束分隔线");
     let section = &section[..end];
@@ -205,7 +204,7 @@ fn published_error_codes_match_spec() {
         assert_eq!(variant.code(), code, "{name} 代码漂移");
         assert!(
             section.contains(&format!("| {code} | `{name}`")),
-            "docs/45 §7.4 未登记错误码 {code} {name}"
+            "docs/design/protocol-v4-archive.md §7.4 未登记错误码 {code} {name}"
         );
     }
     assert!(section.contains("| 52 | — | — | 保留"));
@@ -236,11 +235,14 @@ fn acceptance_matrix_counts_match_docs() {
     assert_eq!(
         ids.len(),
         22,
-        "docs/53 应有 T1–T22 共 22 行，实际 {}",
+        "docs/architecture/acceptance-matrix.md 应有 T1–T22 共 22 行，实际 {}",
         ids.len()
     );
     for n in 1..=22 {
-        assert!(ids.contains(&format!("T{n}")), "docs/53 缺少 T{n}");
+        assert!(
+            ids.contains(&format!("T{n}")),
+            "docs/architecture/acceptance-matrix.md 缺少 T{n}"
+        );
     }
 
     let summary = |label: &str| -> usize {
@@ -248,7 +250,7 @@ fn acceptance_matrix_counts_match_docs() {
         ACCEPTANCE_MATRIX
             .lines()
             .find(|line| line.starts_with(&prefix))
-            .unwrap_or_else(|| panic!("docs/53 汇总表缺少 {label}"))
+            .unwrap_or_else(|| panic!("docs/architecture/acceptance-matrix.md 汇总表缺少 {label}"))
             .split('|')
             .nth(2)
             .expect("汇总行缺少数值")
@@ -263,17 +265,17 @@ fn acceptance_matrix_counts_match_docs() {
     assert_eq!(
         (green, yellow, red),
         (22, 0, 0),
-        "docs/53 矩阵计数已变化，请先更新汇总与 docs/51/52"
+        "docs/architecture/acceptance-matrix.md 矩阵计数已变化，请先更新汇总与 docs/architecture/implementation-status.md/52"
     );
 
     let summary_line = format!("{green} 绿 / {yellow} 黄 / {red} 红");
     assert!(
         STATUS_DOC.contains(&summary_line),
-        "docs/51 未同步 {summary_line}"
+        "docs/architecture/implementation-status.md 未同步 {summary_line}"
     );
     assert!(
         DRIFT_DOC.contains(&summary_line),
-        "docs/52 未同步 {summary_line}"
+        "docs/architecture/drift-audit.md 未同步 {summary_line}"
     );
 }
 
@@ -311,7 +313,10 @@ fn data_plane_registry_matches_spec() {
         );
         assert!(names.insert(name), "data plane 重复登记名称 {name}");
         let row = format!("| {channel} | {type_id} | `{name}` | {header} |");
-        assert!(section.contains(&row), "docs/45 §7.7.1 缺少行 {row}");
+        assert!(
+            section.contains(&row),
+            "docs/design/protocol-v4-archive.md §7.7.1 缺少行 {row}"
+        );
     }
 
     assert_eq!(StreamHello::LEN, 14);
@@ -442,7 +447,10 @@ fn requirements_doc_covers_all_ids_and_key_constants() {
         .split(|c: char| !(c.is_ascii_alphanumeric() || c == '-'))
         .filter(|token| token.starts_with("AW-REQ-") || token.starts_with("INV-"))
         .collect();
-    assert_eq!(found, expected, "docs/65 的需求 ID 集合漂移");
+    assert_eq!(
+        found, expected,
+        "docs/architecture/requirements.md 的需求 ID 集合漂移"
+    );
     for needle in [
         "53 个已结构化类型",
         "Auth→Welcome 3 s",
@@ -461,7 +469,7 @@ fn requirements_doc_covers_all_ids_and_key_constants() {
     ] {
         assert!(
             REQUIREMENTS_DOC.contains(needle),
-            "docs/65 缺少关键常量 {needle}"
+            "docs/architecture/requirements.md 缺少关键常量 {needle}"
         );
     }
 }

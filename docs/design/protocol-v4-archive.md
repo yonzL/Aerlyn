@@ -5,7 +5,7 @@ title: Aerlyn Wire 协议 1.0.0（已冻结）
 status: 1.0.0                # 2026-11-21 冻结（tag v1.0.0）
 date: 2026-11-16
 version: 1.0.0                # 接口/功能/修补 = 1.0.0；wire proto_version = 400
-supersedes: docs/41-protocol-spec-v3.md
+supersedes: V3 规范（历史档案，未随 standalone 迁移）
 references:
   - docs/44-v3-vs-rustdesk-vnc-rdp.md
   - docs/43-rtc-webrtc-assessment.md
@@ -13,15 +13,15 @@ references:
 tags: [protocol, quic, codec, av1, hevc, vp9, h264, vp8]
 ---
 
-> **规范正文见 [`newdocs/protocol.md`](../newdocs/protocol.md)。** 本文是 1.0.0 冻结前的设计与决策档案：保留设计过程、上游对比、决策登记与逐轮实测旁注，**不作为线格式权威**。线格式、状态机、常量与不变量一律以 `newdocs/protocol.md` 为准。
+> **规范正文见 [`../architecture/protocol.md`](../architecture/protocol.md)。** 本文是 1.0.0 冻结前的设计与决策档案：保留设计过程、上游对比、决策登记与逐轮实测旁注，**不作为线格式权威**。线格式、状态机、常量与不变量一律以 `../architecture/protocol.md` 为准。
 
 # Aerlyn Wire 协议 1.0.0（设计档案）
 
 > **V4 = V3 的直连 QUIC 基线 + 五编码矩阵。**
-> **目标：在直连场景胜出或持平 Airhand（0 负为底线，允许平局）。** 传输/通道/握手/会话/文件/剪贴板/音频/安全/错误/背压**沿用 V3**（`docs/41`），
+> **目标：在直连场景胜出或持平 Airhand（0 负为底线，允许平局）。** 传输/通道/握手/会话/文件/剪贴板/音频/安全/错误/背压**沿用 V3 规范（历史档案）**，
 > 本文件定义编码协商、码流封装、编解码切换、质量档，以及为不落后补齐的音频同步/多观看者/验收判据。
 >
-> **分层契约见 [`docs/63-aerlyn-wire-layering.md`](63-aerlyn-wire-layering.md)**：本文件的“wire 保证”由 `aerlyn-wire` 实现；“reference host 要求”由 `opsdesk-service`/`opsdesk-client-core` 实现。`aerlyn-wire` 一个 crate 不等于完整协议。
+> **分层契约见 [`../architecture/layering.md`](../architecture/layering.md)**：本文件的“wire 保证”由 `aerlyn-wire` 实现；“reference host 要求”由 `opsdesk-service`/`opsdesk-client-core` 实现。`aerlyn-wire` 一个 crate 不等于完整协议。
 
 ---
 
@@ -60,7 +60,7 @@ Challenge / Welcome                       // 同一服务端航班
 
 **当前是 `0.5.0` 开发线，不是冻结版本。** 0.5.0 已提交并打 tag；线格式、消息 ID、字段和默认值在冻结前仍允许改。0.1.0/0.2.0/0.3.0 对应 V1/V2/V3，均为未发布 dev 线，不承担向前兼容。
 
-P0-5 冻结审计见 [`docs/57-p0-freeze-audit.md`](57-p0-freeze-audit.md)：**未达冻结条件**；主场景 LAN-only，WAN 直连只要求协议可适用，延迟/吞吐不作为冻结门槛；docs/58 当前 53 符合 / 6 部分 / 4 漂移 / 0 缺失，冻结仍需用户批准；收敛路线见 [`docs/59-freeze-candidate-plan.md`](59-freeze-candidate-plan.md)。
+P0-5 冻结审计摘要见 [实现状态](../architecture/implementation-status.md)：**未达冻结条件**；主场景 LAN-only，WAN 直连只要求协议可适用，延迟/吞吐不作为冻结门槛；历史审计快照记录 53 符合 / 6 部分 / 4 漂移 / 0 缺失，冻结仍需用户批准；收敛路线见 [漂移审计](../architecture/drift-audit.md)。
 
 版本号定义为 **接口字段版本 . 功能实现版本 . 修补版本**（`I.F.P`）：
 
@@ -80,14 +80,14 @@ P0-5 冻结审计见 [`docs/57-p0-freeze-audit.md`](57-p0-freeze-audit.md)：**�
 1. `aerlyn-wire`、`opsdesk-service`、`opsdesk-client-core` 的全平面实现完成，单元/集成/回环测试全绿；
 2. T1–T22 有可复现证据，且直连场景对 Airhand 为 **0 负、胜或平**；
 3. P0 的 R1（TransportConfig）、R3（心跳）、R4（2 RTT 握手结构/单版本）、R2（默认多流）完成并有基准/回归证据；T1–T22 全绿本身不等于冻结；WAN 延迟、吞吐、跨 NAT 时长只作参考，不作门槛；
-4. `docs/45` 与代码的一致性审计无未解释漂移（消息、错误码、字段、默认值、方向）；
+4. 本档案与代码的一致性审计无未解释漂移（消息、错误码、字段、默认值、方向）；
 5. 用户明确批准冻结。
 
 **场景口径（D-V4-21）**：协议设计与质量验收以 **LAN-only** 为主；同一协议栈也适用于 WAN 直连（无 relay 的 P2P QUIC），但 WAN 的通信延迟、吞吐、跨 NAT 保持时长不作为冻结门槛。VPS 实测（R4 `CLIENT_TIMING ready_us=737731/1891305`、16 MiB 上传 40.664 s ≈3.30 Mbps、RTT 177–263 ms）仅作为“协议可在 WAN 运行”的参考数据，不参与 1.0.0 判定。
 
 冻结后的规则：**只增不改**。已发布的错误码、消息 type、通道号、字段语义和二进制布局不得移动；新增能力走新 type / 新 caps 位 / 次版本号。冻结前发现的问题直接改协议，不背兼容包袱；0.5.0 tag 不移动。
 
-**版本降级/回滚**：单版本线内没有协议级降级；混合版本以 `UnsupportedVersion` 拒绝。部署侧采用“版本探针 + 双二进制 + 维护窗口”，回滚靠换回旧二进制，详见 `docs/60-version-downgrade-and-rollback.md`。不要恢复 `version_range` 来实现兼容。
+**版本降级/回滚**：单版本线内没有协议级降级；混合版本以 `UnsupportedVersion` 拒绝。部署侧采用“版本探针 + 双二进制 + 维护窗口”，回滚靠换回旧二进制，详见 [版本策略](versioning.md)。不要恢复 `version_range` 来实现兼容。
 
 ### 0.1 一致性档
 
@@ -359,7 +359,7 @@ client VideoConfig{codec_pref=[AV1,H265,VP9,H264,VP8], ...}
 >
 > 2026-11-18 T17 已满足：`HostSession::handle_decode_error` 注入 H264 `DecodeError` 后先发 KEY（frame_id 1/2），5 秒内第 3 次按 `codec_pref` 切到 H265，发 `VideoReady`/`CodecConfig` 与新 KEY（frame_id 3），会话不断；全失败发 `Error{CodecUnsupported}` + `Bye`。测试见 `opsdesk-service/tests/full_plane.rs`。
 >
-> 2026-11-18 T18 已满足：`opsdesk-codec` + `opsdesk-bench` 五编码 1080p60 120 帧基线，编码 66.9–87.1 fps、解码 582–1132 fps、编码 CPU 128–585%（见 `docs/54`）。`apps/opsdesk-realtime` H.264 全链路 10 秒 1080p60：软件 capture/encode 59.4、decode 59.5、Win32 present 59.2 fps、595/595 帧；硬件 `h264_amf` capture/encode 60.4、decode 59.3、present 59.1 fps、606/606 帧，复跑 59.1–59.3；`h264_mf` 作为不稳定对照保留。`--fps 30` 已验证 `max_fps=30`（host 29.4、client present 29.3），实际 fps 不超过上限。T16 的会话内五编码切换、VM 交互桌面抓屏不在 T18 判据内。
+> 2026-11-18 T18 已满足：`opsdesk-codec` + `opsdesk-bench` 五编码 1080p60 120 帧基线，编码 66.9–87.1 fps、解码 582–1132 fps、编码 CPU 128–585%（见 opsDesk 历史基准记录，未随 standalone 迁移）。`apps/opsdesk-realtime` H.264 全链路 10 秒 1080p60：软件 capture/encode 59.4、decode 59.5、Win32 present 59.2 fps、595/595 帧；硬件 `h264_amf` capture/encode 60.4、decode 59.3、present 59.1 fps、606/606 帧，复跑 59.1–59.3；`h264_mf` 作为不稳定对照保留。`--fps 30` 已验证 `max_fps=30`（host 29.4、client present 29.3），实际 fps 不超过上限。T16 的会话内五编码切换、VM 交互桌面抓屏不在 T18 判据内。
 
 > **达标的定义（胜或平）**：T18–T22 全绿 + V3 的 T1–T15 全绿。它保证每个战场不落后；允许平局，不要求每维度都胜；任一判据红 = 未达标。这些是**验收判据**，不是当前实测结论。
 >

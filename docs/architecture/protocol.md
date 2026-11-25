@@ -11,7 +11,7 @@ date: 2026-11-21
 
 Aerlyn Wire 是桌面远控/远程桌面场景的二进制会话协议：八个并行平面（control / input / video / file / cursor / audio / feedback / clipboard）共享一条已认证的 QUIC 连接（可降级为 TCP），每个平面独立流、独立优先级、独立背压。本文是 1.1.0 的完整线格式与状态机规范。
 
-**只有本文的数值与布局是规范性的。** 常量名指向 `crates/aerlyn-wire` 中的定义处，便于逐条核对。
+**只有本文的数值与布局是规范性的。** 常量名指向 `src/` 中的定义处，便于逐条核对。
 
 ---
 
@@ -21,8 +21,8 @@ Aerlyn Wire 是桌面远控/远程桌面场景的二进制会话协议：八个�
 
 | 层 | 内容 | 落点 |
 |---|---|---|
-| **wire** | 线格式、消息集合与字段、状态机与方向校验、常量与不变量、错误码、超时预算 | `crates/aerlyn-wire` |
-| **engine** | 纯逻辑算法：credit 窗口、位图续传、抖动缓冲、DATAGRAM 重组、XOR FEC、优先级策略、RTT/时钟基线 | `crates/aerlyn-wire` |
+| **wire** | 线格式、消息集合与字段、状态机与方向校验、常量与不变量、错误码、超时预算 | `src/` |
+| **engine** | 纯逻辑算法：credit 窗口、位图续传、抖动缓冲、DATAGRAM 重组、XOR FEC、优先级策略、RTT/时钟基线 | `src/` |
 | **参考实现** | IO 执行（QUIC/TCP 连接、流调度）、编解码器、zstd/SHA-256 计算、屏幕采集与注入、并发模型、指标 | `opsdesk-net` / `opsdesk-service` / `opsdesk-client-core` / `opsdesk-lan` |
 
 规范里出现「执行在参考实现」的条目，描述的是**协议要求的行为**，不是线格式的一部分：私有实现只要满足同样的可观测语义，即视为符合本规范。
@@ -55,7 +55,7 @@ Aerlyn Wire 是桌面远控/远程桌面场景的二进制会话协议：八个�
 
 ### 1.2 消息边界契约（`MessageIo`）
 
-协议引擎只依赖下面六个动作（`crates/aerlyn-wire/src/transport.rs:11`）：
+协议引擎只依赖下面六个动作（`src/transport.rs:11`）：
 
 | 动作 | 语义 |
 |---|---|

@@ -4,19 +4,18 @@ status: active
 date: 2026-11-17
 version: 1.0.0
 related:
-  - docs/45-protocol-spec-v4.md
-  - docs/46-v4-implementation-plan.md
-  - crates/aerlyn-wire/
-  - crates/opsdesk-service/
-  - crates/opsdesk-client-core/
+  - docs/architecture/protocol.md
+  - docs/design/protocol-v4-archive.md
+  - src/
+  - docs/architecture/acceptance-matrix.md
 ---
 
 # Aerlyn Wire 协议库实现状态（1.0.0 已冻结）
 
 > **1.0.0 已冻结（2026-11-21 用户批准）**（tag `v1.0.0`）：线格式、消息、字段和默认值自此不再改；后续改动走 2.0.0。
 > 0.1.0/0.2.0/0.3.0 对应 V1/V2/V3，均为未发布 dev 线；0.5.0 不承担向前兼容。
-> 冻结为 1.0.0 的条件见 `docs/45-protocol-spec-v4.md` §0.0：全平面库完成、T1–T22 达标、P0 的 R1/R3/R4/R2 完成、文档/实现审计无漂移、用户批准。T1–T22 全绿本身不等于冻结。
-> T1–T22 的逐项判据、证据与红黄绿状态见 [`docs/53-t1-t22-acceptance-matrix.md`](53-t1-t22-acceptance-matrix.md)：当前 **22 绿 / 0 黄 / 0 红**。
+> 冻结为 1.0.0 的条件见 `docs/design/protocol-v4-archive.md` §0.0：全平面库完成、T1–T22 达标、P0 的 R1/R3/R4/R2 完成、文档/实现审计无漂移、用户批准。T1–T22 全绿本身不等于冻结。
+> T1–T22 的逐项判据、证据与红黄绿状态见 [验收矩阵](acceptance-matrix.md)：当前 **22 绿 / 0 黄 / 0 红**。
 
 ## 1. 测试基线
 
@@ -79,7 +78,7 @@ VM LAN 探针:           opsdesk-lan/lan_probe：Win11 192.168.99.244（2026-11-
 | `tests/plane_conn.rs` | 8 条按平面流上的 channel 路由、静态/动态优先级与 `open_extra`/`accept_extra` 测试：ch1/ch3/ch5 发送、ch2 回包，服务端/客户端各主动加流并验证接管；D14 旧 reader 停投递无独立回归测试；`serve_multistream`/`connect_multistream` 多流入口测试已加 |
 | `opsdesk-service/tests/quic_session.rs` | 真实 QUIC 上 `HostSession::accept` + `ClientSession::connect` 的完整握手/VideoConfig/VideoReady/CodecConfig |
 | `opsdesk-lan/src/bin/lan_probe.rs` | 真实 LAN 探针：同一二进制可作 server/client/send-file；Win11 VM `192.168.99.244`（2026-11-19 控制台为 `192.168.78.134`）上完成握手/协商、Ping→Pong，以及原始块/zstd(3) 文件传输（307,207 B / 5 块 / SHA-256 一致） |
-| `opsdesk-codec` | ffmpeg 进程后端：`EncoderConfig`/`Frame`/`VideoEncoder`/`VideoDecoder`；H264/H265/VP8/VP9/AV1 五编码映射；`apps/opsdesk-bench` 输出 JSONL + 表格；1080p60 软件基线见 `docs/54` |
+| `opsdesk-codec` | ffmpeg 进程后端：`EncoderConfig`/`Frame`/`VideoEncoder`/`VideoDecoder`；H264/H265/VP8/VP9/AV1 五编码映射；`apps/opsdesk-bench` 输出 JSONL + 表格；1080p60 软件基线见 opsDesk 历史基准记录（未随 standalone 迁移） |
 | `apps/opsdesk-realtime` | 实时 H.264 本地链路：`ffmpeg gdigrab → libx264/h264_mf → HostSession::send_video → QUIC → ffmpeg low_delay 解码`；软件 10 秒 1080p60 capture/encode 59.4、decode 59.5、Win32 窗口 present 59.2 fps、首帧 105 ms、595/595 帧无丢帧；硬件 `h264_mf`（AMDh264Encoder）最佳一次 capture/encode 59.0、decode 59.1、`SetDIBitsToDevice` 窗口 present 58.8 fps、591/591 帧，但重复运行出现 34.6 fps / 0 帧，硬件路径不稳定；`--fps 30` 时 `select_codec` 返回 `max_fps=30`，host 以 29.4 fps 采集/发送（294 帧），窗口 present 29.3 fps；`--present window` 走 Win32 DIB，`memory` 仍可回归 |
 | `error.rs` | 50/51/52 保留/53/54/55/60/61/62；只增不改单测 |
 | `opsdesk-service` | `serve` 一次性视频流程；`HostSession::accept` 常驻会话，协商后收发 control/六平面帧；typed 方法覆盖视频流生命周期、文件块/文件尾/ack、光标形状/位置、剪贴板、音频；`send_video` 自动记录 `frame_id`，`recv` 自动记录输入 `seq`，`send_next_video` 自动递增；`send_file_stream`/`send_file_stream_zstd`/`send_file_stream_adaptive`/`send_file_stream_from` 按窗口驱动 `FileSendStream` 并在全部 ack 后发 `FileEnd`，`from` 从 `FileResumeHint` 偏移用 `open_at` 续发；`FileSparseSendStream`/`FileSparseRecvSink` 提供按位图跳块/乱序落盘的真实文件驱动；`send_file_stream_sparse` 已把稀疏发送窗口接进常驻会话；`recv_file_chunks`/`recv_file_chunks_zstd` 对原始/zstd 块回调、回 ack 并返回 `FileEnd`；`send_host_stats`/`send_input_status` 补齐 HostStats 与 InputStatus 的 typed 下发，`send_clip_ack`/`send_cursor_reset`/`send_audio_fmt` 补齐剪贴板 ack、光标复位与音频格式 typed 下发；`recv_decoded` 提供 `DecodedPlaneEvent` 统一解码入口；`HostSession::accept_with_store` 用 `TicketStore::issue` 签发首票；`HostSession::resume` 用 `ResumeSnapshot` 恢复并校验 `ResumeAhead`；`HostSession::resume_with_store` 用 `TicketStore::redeem` 原子换票并拒绝旧票重放；`HostSession::resume_or_accept` 在票据拒绝后同连接回退完整 `Hello` |
@@ -106,7 +105,7 @@ T1–T22 全绿只证明验收闭环，不等于可以冻结 1.0.0。当前按 P
 | P0-2 R3 心跳 | 0.4.2 | 完成：`Heartbeat` 5s/3 misses、15s 检出单测、`ClientSession::heartbeat_poll/on_pong`；`heartbeat_detects_15s_udp_blackhole` 真实 QUIC/UDP 代理全丢包 15.05s 检出 |
 | P0-3 R4 2 RTT 握手 | 0.5.0-rc | **结构完成**：已删除 `Hello.version_range`、`negotiate_version`，`Hello.version` 与 `ClientConfig.version`/`ServerConfig.version` 均为单值；服务端 `Challenge`+`Welcome` 同航班发出，客户端收到 Welcome 即发 `Auth`（可带首条业务消息），服务端先验 Auth、失败补 `Bye{12}`；成功路径 3 帧。WAN ready 738/1891 ms（RTT 177–263 ms）仅作参考，不作冻结门槛；wire 仍 400，0.5.0 为库版本发布，不改 wire；未来线格式变化再升 500 |
 | P0-4 R2 默认 8 平面多流 | 0.5.0 | 完成：`PlaneConnection` 默认 8 流、`--single-stream` 回退；`concurrent_file_does_not_block_video_or_input` 100 轮 64 KiB file + input + video，video p95 168.4→450.4 µs（增量 282 µs）、input p95 506.4 µs；默认多流握手/Ping 已本地 smoke，VM 多流此前已验证；WAN 不再作为出口判据 |
-| P0-5 审计 + 1.0.0 冻结 | 1.0.0 | **1.0.0 已冻结（2026-11-21 用户批准，tag `v1.0.0`）**：见 `docs/57-p0-freeze-audit.md` 与 `docs/59-freeze-candidate-plan.md`；T1–T22 22/0/0、316 tests + 4 ignored、审计通过；P0/P1 已按协议库层面关闭（D1–D23 全部关闭；D21 背压队列在默认多流异步泵上生效，单流回退显式 batch），P2 按 OP-6 降级关闭。2026-11-21 用户批准冻结 1.0.0；OP-1/OP-6/OP-11/OP-13 已修复/复测并随 1.0.0 冻结 |
+| P0-5 审计 + 1.0.0 冻结 | 1.0.0 | **1.0.0 已冻结（2026-11-21 用户批准，tag `v1.0.0`）**：见历史冻结审计与收敛计划（未随 standalone 迁移）；T1–T22 22/0/0、316 tests + 4 ignored、审计通过；P0/P1 已按协议库层面关闭（D1–D23 全部关闭；D21 背压队列在默认多流异步泵上生效，单流回退显式 batch），P2 按 OP-6 降级关闭。2026-11-21 用户批准冻结 1.0.0；OP-1/OP-6/OP-11/OP-13 已修复/复测并随 1.0.0 冻结 |
 
 R1 当前证据：`cargo test -p opsdesk-net --lib` = 11 passed；`idle_90s_keeps_connection_alive` = 1 passed in 95.01s；五包全量 **316 passed / 4 ignored**。R1 已完成 LAN 主场景；0.5.0 已发布，0.4.1 不再单独发布。
 
@@ -132,7 +131,7 @@ R6/R8/R9/R10 当前证据（0.5.0 后工作树，未改 tag）：
 4. `apps/opsdesk-realtime` 已把 H.264 本地全链路跑到 10 秒 1080p60：软件 capture/encode 59.4、decode 59.5、窗口 present 59.2 fps；硬件 `h264_amf` capture/encode 60.4、decode 59.3、present 59.1 fps（复跑 59.1–59.3），T18 已满足；`--fps 30` 已验证 host 29.4 fps、client present 29.3 fps。T16 协议级会话内切换已完成；T13 的运行时 `max_fps` 限帧、暂停与恢复首帧 KEY 已由 `max_fps_pauses_and_resumes_with_keyframe` 验证；T20 音频已接本地 Opus 链路并完成应用层 200 ms 抖动/丢帧注入与 `--av-sync` 门控（p95 69 ms、A/V -10.5 ms、视频 60.6 fps、RED 恢复 169 包、dropped=0）；`h264_mf` 不稳定路径仅保留对照；VM 交互控制台已于 2026-11-19 跑通实时 host→宿主 client（377 帧/20.0 s、18.8 fps、窗口 present 18.9 fps），gdigrab error 5 只出现在无桌面的 SSH 会话，不再是环境缺口。
 5. 按平面拆分常驻循环与并发调度：control 常驻、video/input/feedback 并发、file/cursor/audio/clipboard 按需开流。
 6. 给每个平面加内存回环集成测试，再跑 T1–T22。
-7. 审计 docs/45 与代码的消息/错误码/字段/方向，清掉未解释漂移；P0 结构/回归已完成，WAN 数据仅作参考；OP-1/OP-6/OP-11/OP-13 已修复并复测，待请求用户复审 1.0.0 冻结。
+7. 审计 docs/design/protocol-v4-archive.md 与代码的消息/错误码/字段/方向，清掉未解释漂移；P0 结构/回归已完成，WAN 数据仅作参考；OP-1/OP-6/OP-11/OP-13 已修复并复测，待请求用户复审 1.0.0 冻结。
 
 ## 5. 已知边界
 

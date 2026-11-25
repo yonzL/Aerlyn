@@ -1,13 +1,13 @@
 ---
 status: draft
 scope: aerlyn-wire
-basis: 1.0.0 冻结线（tag v1.0.0）
+basis: 1.0.0 冻结线（tag v1.0.0）；1.1.0 只增量补充双向文件流，见 protocol.md §8
 method: 从 public API、类型不变量、编码器/解码器校验和测试反推；不以旧规格中的计划项为依据
 ---
 
 # Aerlyn Wire 需求规格（代码反推）
 
-> 配套使用说明：[`docs/66-aerlyn-wire-usage.md`](66-aerlyn-wire-usage.md)。本文回答“协议必须满足什么”，66 号回答“怎么接、怎么调”。
+> 配套使用说明：[接入指南](../guide/README.md)。本文回答“协议必须满足什么”，接入指南回答“怎么接、怎么调”。
 
 ## 1. 这是什么
 

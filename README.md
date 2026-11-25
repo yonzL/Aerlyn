@@ -8,10 +8,15 @@ Aerlyn Wire 是面向远程桌面与设备运维场景的直连二进制会话�
 
 ## 文档
 
-- [协议规范 1.1.0](docs/protocol.md) —— 线格式、状态机、常量与不变量的唯一权威。
-- [需求条款](docs/65-aerlyn-wire-requirements-from-code.md) —— 从实现反推的需求 ID 与验收证据。
-- [实现状态](docs/51-aerlyn-wire-implementation-status.md) 与 [漂移审计](docs/52-protocol-drift-audit.md) —— 历史审计档案。
-- [设计档案](docs/45-protocol-spec-v4.md) —— 1.0.0 冻结前的设计与决策记录。
+完整目录见 [文档索引](docs/README.md)。
+
+- 接入：[接入指南](docs/guide/README.md)
+- 规范：[协议规范 1.1.0](docs/architecture/protocol.md)、[分层与传输边界](docs/architecture/layering.md)
+- 架构：[架构总览](docs/architecture/README.md)、[需求条款](docs/architecture/requirements.md)
+- 审计：[实现状态](docs/architecture/implementation-status.md)、[验收矩阵](docs/architecture/acceptance-matrix.md)、[漂移审计](docs/architecture/drift-audit.md)
+- 设计：[设计原则](docs/design/README.md)、[版本策略](docs/design/versioning.md)、[V4 设计档案](docs/design/protocol-v4-archive.md)
+- 开发：[环境与构建](docs/development/README.md)、[测试](docs/development/testing.md)、[发布](docs/development/release.md)
+- 项目：[Roadmap](docs/roadmap.md)、[已知问题](docs/known-issues.md)
 
 ## 构建
 
