@@ -8,6 +8,7 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use crate::control::{FileOffer, HostStats, PlanePriorities, Pong, Resume};
 use crate::message::ControlMessage;
+use crate::privacy::PrivacyTracker;
 use crate::session::{Role, SessionState};
 use crate::timing::RttEstimator;
 
@@ -97,6 +98,8 @@ pub struct SessionMachine {
     pub rtt: RttEstimator,
     pub last_session_info: Option<crate::control::SessionInfo>,
     pub control_owner: Option<u64>,
+    /// Host-authoritative privacy state, monotonically applied on the client.
+    pub privacy: PrivacyTracker,
     /// 主机侧要求 ChannelHello 携带的会话 token；`None` 表示不校验。
     pub channel_token: Option<Vec<u8>>,
     /// Wall-clock issue time for `channel_token`.
@@ -129,6 +132,7 @@ impl SessionMachine {
             rtt: RttEstimator::new(),
             last_session_info: None,
             control_owner: None,
+            privacy: PrivacyTracker::new(),
             channel_token: None,
             channel_token_issued_ms: 0,
             channel_token_used: BTreeSet::new(),
@@ -449,6 +453,9 @@ impl SessionMachine {
             ControlMessage::ControlOwner(owner) => {
                 self.control_owner = Some(owner.owner);
             }
+            ControlMessage::PrivacyState(state) => {
+                self.privacy.apply(state.clone());
+            }
             ControlMessage::ShareRequest(_) => {
                 self.require_stream_capable(name)?;
                 if !self.role.can_write() {
@@ -608,7 +615,7 @@ pub fn direction_allowed(name: &str, side: Side) -> bool {
         }
         "VideoReady" | "CodecConfig" | "VideoAdjusted" | "DisplayList" | "DisplayChanged"
         | "InputState" | "InputStatus" | "HostStats" | "Saved" | "SessionInfo" | "SessionEnded"
-        | "ControlOwner" => matches!(side, Client),
+        | "ControlOwner" | "PrivacyState" => matches!(side, Client),
         "FileOffer" | "FileGet" | "FileList" | "FileCancel" => matches!(side, Host),
         "FileAccept" | "FileMeta" | "FileListing" => matches!(side, Client),
         "FileDone" | "FileError" => true,
@@ -626,7 +633,7 @@ mod tests {
     use super::*;
     use crate::control::{
         AudioStart, FileCancel, FileDone, FileGet, FileList, FileOffer, InputStatus, Ping,
-        PlanePriorities, Resume, VideoStop,
+        PlanePriorities, PrivacyState, Resume, VideoStop,
     };
     use crate::message::{VideoAdjusted, VideoConfig, VideoReady, CONTROL_MESSAGE_TYPES};
     use serde_json::json;
@@ -810,6 +817,27 @@ mod tests {
         }))
         .unwrap();
         assert_eq!(c.last_host_stats.unwrap().actual_fps, 60);
+    }
+
+    #[test]
+    fn privacy_state_applies_monotonically_on_client() {
+        let mut c = client();
+        let state = |revision| PrivacyState {
+            revision,
+            state: crate::control::privacy_mode::ON,
+            overlay_active: true,
+            reason: "remote session".into(),
+            local_unlock_revision: 0,
+        };
+        c.handle(&ControlMessage::PrivacyState(state(1))).unwrap();
+        c.handle(&ControlMessage::PrivacyState(state(1))).unwrap();
+        assert_eq!(c.privacy.current().unwrap().revision, 1);
+        assert!(c.privacy.overlay_visible());
+        assert!(c.privacy.local_unlock());
+        assert!(!c.privacy.overlay_visible());
+        c.handle(&ControlMessage::PrivacyState(state(2))).unwrap();
+        assert_eq!(c.privacy.current().unwrap().revision, 2);
+        assert!(c.privacy.overlay_visible());
     }
 
     #[test]

@@ -621,6 +621,50 @@ pub struct ShareRequest {
     pub share: u8,
 }
 
+/// Privacy screen modes carried by `PrivacyState`.
+pub mod privacy_mode {
+    pub const OFF: u8 = 0;
+    pub const ON: u8 = 1;
+    pub const UNAVAILABLE: u8 = 2;
+}
+
+pub const MAX_PRIVACY_REASON: usize = 256;
+
+/// Host-authoritative privacy screen state.
+///
+/// `revision` is monotonic; newer revisions replace older ones. The client may
+/// dismiss its local overlay for one revision without echoing that choice back
+/// to the host (`local_unlock_revision`).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PrivacyState {
+    pub revision: u64,
+    pub state: u8,
+    #[serde(default)]
+    pub overlay_active: bool,
+    #[serde(default)]
+    pub reason: String,
+    #[serde(default)]
+    pub local_unlock_revision: u64,
+}
+
+impl PrivacyState {
+    pub fn validate(&self) -> Result<(), &'static str> {
+        if !matches!(
+            self.state,
+            privacy_mode::OFF | privacy_mode::ON | privacy_mode::UNAVAILABLE
+        ) {
+            return Err("invalid privacy mode");
+        }
+        if self.reason.len() > MAX_PRIVACY_REASON {
+            return Err("privacy reason too long");
+        }
+        if self.local_unlock_revision > self.revision {
+            return Err("local unlock revision ahead of host revision");
+        }
+        Ok(())
+    }
+}
+
 impl ErrorReply {
     pub fn class(&self) -> Option<ErrorClass> {
         match self.class {

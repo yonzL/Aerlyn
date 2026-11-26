@@ -14,8 +14,8 @@ use crate::control::{
     ControlOwner, DisplayChanged, DisplayList, ErrorReply, FileAccept, FileCancel, FileDelete,
     FileDone, FileErrorInfo, FileGet, FileList, FileListing, FileMeta, FileMkdir, FileOffer,
     FileRename, HostStats, InputConfig, InputState, InputStatus, OkReply, Ping, PlanePriorities,
-    Pong, Rejected, RequestKeyframe, Resume, ResumeResult, ResumeTicket, Saved, Screenshot,
-    SendCad, SessionEnded, SessionInfo, ShareRequest, VideoStop,
+    Pong, PrivacyState, Rejected, RequestKeyframe, Resume, ResumeResult, ResumeTicket, Saved,
+    Screenshot, SendCad, SessionEnded, SessionInfo, ShareRequest, VideoStop,
 };
 use crate::data::InputError;
 use crate::ext::Extension;
@@ -383,6 +383,7 @@ pub enum ControlMessage {
     SessionInfo(SessionInfo),
     SessionEnded(SessionEnded),
     ControlOwner(ControlOwner),
+    PrivacyState(PrivacyState),
     ShareRequest(ShareRequest),
     HostStats(HostStats),
     Ping(Ping),
@@ -410,6 +411,7 @@ control_dispatch! {
     ClipPull => ClipPull,
     CodecConfig => CodecConfig,
     ControlOwner => ControlOwner,
+    PrivacyState => PrivacyState,
     DecodeError => DecodeError,
     DisplayChanged => DisplayChanged,
     DisplayList => DisplayList,

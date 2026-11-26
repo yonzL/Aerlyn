@@ -608,14 +608,14 @@ QUIC DATAGRAM 路径并行存在，用于低延迟：一帧切成 ≤ `MAX_VIDEO
 
 ### 12.1 编码
 
-控制面载荷是 UTF-8 JSON，消息身份由 JSON 内的 `type` 字符串决定（serde tag），**没有数字类型号**。注册表共 53 项：
+控制面载荷是 UTF-8 JSON，消息身份由 JSON 内的 `type` 字符串决定（serde tag），**没有数字类型号**。注册表共 54 项：
 
 ```
 AudioStart AudioStop Auth Bye Challenge ChannelHello ChannelWelcome
 ClipAccept ClipDone ClipOffer ClipPull CodecConfig ControlOwner DecodeError
 DisplayChanged DisplayList Error FileAccept FileCancel FileDelete FileDone
 FileError FileGet FileList FileListing FileMeta FileMkdir FileOffer FileRename
-Hello HostStats InputConfig InputState InputStatus Ok Ping PlanePriorities Pong
+Hello HostStats InputConfig InputState InputStatus Ok Ping PlanePriorities Pong PrivacyState
 Rejected RequestKeyframe Resume ResumeResult Saved Screenshot SendCad
 SessionEnded SessionInfo ShareRequest VideoAdjusted VideoConfig VideoReady
 VideoStop Welcome
@@ -630,7 +630,7 @@ VideoStop Welcome
 | 方向 | 消息 |
 |---|---|
 | C→H | Hello, Auth, Resume, ChannelHello, VideoConfig, VideoStop, RequestKeyframe, InputConfig, DecodeError, FileOffer, FileGet, FileList, FileCancel, ClipPull, AudioStart, AudioStop, Screenshot, SendCad, FileMkdir, FileDelete, FileRename, ShareRequest |
-| H→C | Challenge, Welcome, ResumeResult, ChannelWelcome, Rejected, VideoReady, CodecConfig, VideoAdjusted, DisplayList, DisplayChanged, InputState, InputStatus, HostStats, Saved, SessionInfo, SessionEnded, ControlOwner, FileAccept, FileMeta, FileListing |
+| H→C | Challenge, Welcome, ResumeResult, ChannelWelcome, Rejected, VideoReady, CodecConfig, VideoAdjusted, DisplayList, DisplayChanged, InputState, InputStatus, HostStats, Saved, SessionInfo, SessionEnded, ControlOwner, PrivacyState, FileAccept, FileMeta, FileListing |
 | 双向 | Bye, Error, Ok, Ping, Pong, PlanePriorities, ClipOffer, ClipAccept, ClipDone, FileDone, FileError |
 
 表中未列出的名字一律视为非法方向并报 `WrongDirection`。
@@ -655,6 +655,10 @@ VideoStop Welcome
 `FileList`（C→H，`path` + `limit`）→ `FileListing`（H→C，条目数组 + 是否还有更多）。条目含名字、类型、大小、修改时间。`FileGet` 用于请求一个文件的内容下载：host 先回 `FileMeta`，随后按 `offset` 发送 `FILE_CHUNK`；条目元数据浏览应使用 `FileList`。`FileList` 分页由客户端按 `limit` 自行循环，协议不提供游标。
 
 ---
+
+### 12.3 PrivacyState
+
+`PrivacyState` 是主机权威、单调 revision 的隐私屏状态：`{revision u64, state u8, overlay_active bool, reason String, local_unlock_revision u64}`。`state` 为 0 off / 1 on / 2 unavailable；`revision` 必须严格递增，客户端丢弃旧 revision；`local_unlock_revision` 记录客户端本地已关闭的最近 host revision，只影响本地 overlay，不回传主机。`reason` ≤ 256 B。
 
 ## 13. 错误码
 

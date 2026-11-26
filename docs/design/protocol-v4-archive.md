@@ -448,6 +448,7 @@ client VideoConfig{codec_pref=[AV1,H265,VP9,H264,VP8], ...}
 | `SendCad` | C→H | SAS | `Ok` |
 | `AudioStart` / `AudioStop` | C→H | AUDIO_OPUS | `Ok` |
 | `SessionInfo` / `SessionEnded` / `ControlOwner` | H→C | SHARE_SESSION | 会话元数据/结束/控制者 |
+| `PrivacyState` | H→C | PRIVACY | 隐私屏权威状态（单调 revision） |
 | `ShareRequest` | C→H | SHARE_SESSION | 请求切换 share 模式 |
 | `HostStats` | H→C | STATS | 实际 fps/编码耗时/丢弃 |
 | `Ping` / `Pong` | 双向 | HEARTBEAT | `Pong` |

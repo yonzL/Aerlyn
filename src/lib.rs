@@ -25,6 +25,7 @@ pub mod message;
 pub mod payload;
 pub mod plane;
 pub mod plane_message;
+pub mod privacy;
 pub mod quality;
 pub mod session;
 pub mod settings;
@@ -87,6 +88,7 @@ pub use payload::{
 };
 pub use plane::*;
 pub use plane_message::{PlaneMessage, PlaneMessageError};
+pub use privacy::PrivacyTracker;
 pub use quality::QualityMode;
 pub use session::{Role, SessionState};
 pub use settings::{QualitySettings, VideoPriority};
