@@ -97,7 +97,7 @@ impl VideoDatagramHeader {
         }
         if self.is_parity() {
             let group = u16::from(self.reserved);
-            if group < 2 || group > 64 {
+            if !(2..=64).contains(&group) {
                 return Err(VideoDatagramError::BadFecGroup(self.reserved));
             }
             if u32::from(self.frag_index) >= u32::from(self.frag_count) / u32::from(group) {
@@ -207,8 +207,8 @@ pub fn fragment_video_fec(
     for group_index in 0..(count / group) {
         let start = group_index * group;
         let mut parity = vec![0u8; VIDEO_DATAGRAM_PAYLOAD];
-        for index in start..start + group {
-            for (dst, src) in parity.iter_mut().zip(&out[index].payload) {
+        for packet in out.iter().skip(start).take(group) {
+            for (dst, src) in parity.iter_mut().zip(&packet.payload) {
                 *dst ^= *src;
             }
         }

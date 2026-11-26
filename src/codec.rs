@@ -1,6 +1,6 @@
 //! 编码注册与协商。
 //!
-//! 规则来自 `docs/45-protocol-spec-v4.md`：
+//! 规则来自 `docs/design/protocol-v4-archive.md`：
 //! - 五种性能编码 + RAW 兜底；
 //! - 客户端给有序偏好，host 取第一个双方都支持且满足约束的编码；
 //! - profile/level/chroma/位深/分辨率/fps/码率全部协商；
@@ -252,24 +252,18 @@ fn highest_bit(v: u32) -> u32 {
 }
 
 fn choose_chroma(available: u8, pref: u8) -> Option<u8> {
-    for c in [chroma::I420, chroma::I444, chroma::I422, chroma::BGRA] {
-        if available & c != 0 && pref & c != 0 {
-            return Some(c);
-        }
-    }
-    None
+    [chroma::I420, chroma::I444, chroma::I422, chroma::BGRA]
+        .into_iter()
+        .find(|&c| available & c != 0 && pref & c != 0)
 }
 
 fn choose_bit_depth(available: u8, pref: u8) -> Option<u8> {
-    for d in [bit_depth::EIGHT, bit_depth::TEN, bit_depth::TWELVE] {
-        if available & d != 0 && pref & d != 0 {
-            return Some(d);
-        }
-    }
-    None
+    [bit_depth::EIGHT, bit_depth::TEN, bit_depth::TWELVE]
+        .into_iter()
+        .find(|&d| available & d != 0 && pref & d != 0)
 }
 
-fn find_cap<'a>(caps: &'a [CodecCap], codec: Codec) -> Option<&'a CodecCap> {
+fn find_cap(caps: &[CodecCap], codec: Codec) -> Option<&CodecCap> {
     caps.iter().find(|c| c.codec == codec)
 }
 

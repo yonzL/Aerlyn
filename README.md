@@ -29,4 +29,4 @@ MSRV：Rust 1.85。
 
 ## 版本
 
-当前库版本 **1.2.0**；线协议 `proto_version = 400`，ALPN `aerlyn/4` / `aerlyn/4-tcp`。
+当前库版本 **1.2.1**；线协议 `proto_version = 400`，ALPN `aerlyn/4` / `aerlyn/4-tcp`。

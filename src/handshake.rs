@@ -92,6 +92,7 @@ fn require_32(field: &'static str, bytes: &[u8]) -> Result<(), HandshakeError> {
 /// 签名原文（V3 §9.2）：
 /// `nonce(32) ‖ u16be alpn_major ‖ u16be version ‖ host_fp(32)
 ///  ‖ u64be caps ‖ u64be caps_required ‖ sha256(caps_ext) ‖ public_key`。
+#[allow(clippy::too_many_arguments)]
 pub fn transcript(
     nonce: &[u8],
     alpn_major: u16,

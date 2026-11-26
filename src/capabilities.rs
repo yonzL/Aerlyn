@@ -307,8 +307,10 @@ mod tests {
 
     #[test]
     fn codec_ability_i444() {
-        let mut a = CodecAbility::default();
-        a.h264 = true;
+        let a = CodecAbility {
+            h264: true,
+            ..Default::default()
+        };
         assert!(a.supports(Codec::H264));
         assert!(!a.supports(Codec::Av1));
     }

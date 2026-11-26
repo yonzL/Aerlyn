@@ -101,7 +101,7 @@ impl CursorShape {
             1 => self.data.len(),
             // mask+AND/XOR：两个 1bpp 平面，每行按字节对齐。
             2 => {
-                let stride = (usize::from(w) + 7) / 8;
+                let stride = usize::from(w).div_ceil(8);
                 2 * stride * usize::from(h)
             }
             _ => return Err(PayloadError::BadFormat),

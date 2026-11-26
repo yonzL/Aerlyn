@@ -227,10 +227,8 @@ impl JitterBuffer {
         self.stats.max_jitter_ms = self.stats.max_jitter_ms.max(self.jitter_ms.round() as u32);
         self.stats.received += 1;
         // 首包乱序到达时，队头应取最小 seq；已经播放过后不回退。
-        if self.stats.played == 0 {
-            if self.next_seq.map_or(true, |n| packet.seq < n) {
-                self.next_seq = Some(packet.seq);
-            }
+        if self.stats.played == 0 && self.next_seq.is_none_or(|n| packet.seq < n) {
+            self.next_seq = Some(packet.seq);
         }
         self.packets
             .insert(packet.seq, Entry { packet, arrival_us });

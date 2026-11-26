@@ -15,7 +15,7 @@ pub const MAX_FILE_BLOCK: u32 = 4 << 20;
 pub const DEFAULT_FILE_CREDIT: u16 = 8;
 pub const MAX_FILE_BYTES: u64 = 8 << 30;
 pub const MAX_FILE_BLOCKS: u64 = 8192;
-pub const MAX_FILE_BITMAP_BYTES: usize = (MAX_FILE_BLOCKS as usize + 7) / 8;
+pub const MAX_FILE_BITMAP_BYTES: usize = (MAX_FILE_BLOCKS as usize).div_ceil(8);
 
 pub const DEFAULT_CLIP_BLOCK: u32 = 256 << 10;
 pub const DEFAULT_CLIP_CREDIT: u16 = 4;
@@ -216,7 +216,7 @@ impl FileBitmap {
         if u64::from(block_count) > MAX_FILE_BLOCKS {
             return Err(TransferError::BadConfig("file block count must be <= 8192"));
         }
-        let len = (block_count as usize + 7) / 8;
+        let len = (block_count as usize).div_ceil(8);
         Ok(Self {
             block_count,
             count: 0,
