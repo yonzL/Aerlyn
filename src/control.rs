@@ -630,6 +630,49 @@ pub mod privacy_mode {
 
 pub const MAX_PRIVACY_REASON: usize = 256;
 
+/// Per-peer preview subscription request (C→H).
+///
+/// The host answers with `Ok` or `Error`; the wire type only carries the
+/// requested budget and geometry so a host can reject or downgrade it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PreviewSubscription {
+    pub req_id: u32,
+    pub viewer_id: u64,
+    pub max_fps: u16,
+    pub max_kbps: u32,
+    pub width: u16,
+    pub height: u16,
+    pub codec: u8,
+    pub quality: u8,
+}
+
+pub const PREVIEW_MAX_FPS: u16 = 240;
+pub const PREVIEW_MAX_KBPS: u32 = 1_000_000;
+pub const PREVIEW_MAX_DIM: u16 = 8192;
+pub const PREVIEW_QUALITY_MAX: u8 = 3;
+
+impl PreviewSubscription {
+    pub fn validate(&self) -> Result<(), &'static str> {
+        if self.max_fps == 0 || self.max_fps > PREVIEW_MAX_FPS {
+            return Err("preview fps out of range");
+        }
+        if self.max_kbps == 0 || self.max_kbps > PREVIEW_MAX_KBPS {
+            return Err("preview bitrate out of range");
+        }
+        if self.width == 0
+            || self.height == 0
+            || self.width > PREVIEW_MAX_DIM
+            || self.height > PREVIEW_MAX_DIM
+        {
+            return Err("preview dimensions out of range");
+        }
+        if self.quality > PREVIEW_QUALITY_MAX {
+            return Err("preview quality out of range");
+        }
+        Ok(())
+    }
+}
+
 /// Host-authoritative privacy screen state.
 ///
 /// `revision` is monotonic; newer revisions replace older ones. The client may

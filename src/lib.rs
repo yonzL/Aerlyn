@@ -7,6 +7,13 @@
 //!
 //! 本 crate 只做纯逻辑（无 IO、无编码器依赖）；真实 QUIC/TCP 由 `opsdesk-net` 实现。
 
+/// Wire version carried in the handshake (1.2.x line).
+pub const PROTO_VERSION: u32 = 400;
+/// Primary ALPN.
+pub const ALPN: &str = "aerlyn/4";
+/// TCP downgrade ALPN.
+pub const ALPN_TCP: &str = "aerlyn/4-tcp";
+
 pub mod audio;
 pub mod capabilities;
 pub mod caps;

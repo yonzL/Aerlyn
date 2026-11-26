@@ -6,10 +6,15 @@
 
 | 层 | 位置 | 负责 | 不负责 |
 |---|---|---|---|
+| L0 contract | `aerlyn-contract` | 无依赖常量：版本、ALPN、固定头长度、预览/隐私边界 | 状态机、JSON、I/O |
 | L0 wire | `src/channel.rs`、`src/message.rs`、`src/control.rs`、`src/plane.rs` | 长度前缀、JSON control、二进制头、TLV、常量 | socket、线程、重试 |
 | L1 engine | `src/handshake.rs`、`src/machine.rs`、`src/fragment.rs`、`src/transfer.rs`、`src/audio.rs` | 握手、状态机、分片/重组、窗口、纯算法 | I/O 阻塞、编码器、文件系统 |
 | L2 transport | 外部适配器（参考：`opsdesk-net`） | `MessageIo`、流/通道映射、DATAGRAM、异步写泵、TCP 降级 | 消息语义、状态机 |
 | L3 host | 外部产品（参考：`opsdesk-service` / `opsdesk-client-core`） | 会话编排、编码器、文件 IO、压缩、UI | 线格式重定义 |
+
+## 可绑定 contract
+
+`aerlyn-contract` 是独立的无依赖 crate，只放 Swift/Kotlin/JS 绑定需要的稳定常量：`PROTO_VERSION`、ALPN、固定头长度、隐私/预览边界与语义光标能力位。它不依赖 `aerlyn-wire`，也不含状态机；`tests/contract_sync.rs` 在仓库内做常量同步检查。
 
 ## MessageIo 契约
 

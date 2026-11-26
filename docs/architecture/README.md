@@ -58,7 +58,7 @@ peer bytes
 
 ## 相关页面
 
-- [协议规范 1.1.0](protocol.md)
+- [协议规范 1.2.0](protocol.md)
 - [分层与传输边界](layering.md)
 - [需求规格](requirements.md)
 - [实现状态（历史快照）](implementation-status.md)

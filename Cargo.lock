@@ -3,9 +3,14 @@
 version = 4
 
 [[package]]
+name = "aerlyn-contract"
+version = "1.2.0"
+
+[[package]]
 name = "aerlyn-wire"
 version = "1.2.0"
 dependencies = [
+ "aerlyn-contract",
  "serde",
  "serde_json",
  "sha2",

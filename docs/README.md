@@ -11,7 +11,7 @@ Aerlyn Wire 是面向远程桌面与设备运维场景的直连二进制会话�
 | 目标 | 文档 |
 |---|---|
 | 第一次接入 | [接入指南](guide/README.md) |
-| 查线格式/状态机/常量 | [协议规范 1.1.0](architecture/protocol.md) |
+| 查线格式/状态机/常量 | [协议规范 1.2.0](architecture/protocol.md) |
 | 理解 crate 边界 | [架构总览](architecture/README.md)、[分层与传输边界](architecture/layering.md) |
 | 查需求与验收 | [需求规格](architecture/requirements.md)、[验收矩阵（历史快照）](architecture/acceptance-matrix.md) |
 | 查版本与发布规则 | [版本与发布](development/release.md)、[版本策略](design/versioning.md) |

@@ -1,15 +1,15 @@
 ---
-title: Aerlyn Wire 协议规范 1.1.0
-version: 1.1.0
+title: Aerlyn Wire 协议规范 1.2.0
+version: 1.2.0
 wire_proto_version: 400
 alpn: aerlyn/4
-status: 1.1.0（正式版）
+status: 1.2.0（功能线）
 date: 2026-11-21
 ---
 
-# Aerlyn Wire 协议规范 1.1.0
+# Aerlyn Wire 协议规范 1.2.0
 
-Aerlyn Wire 是桌面远控/远程桌面场景的二进制会话协议：八个并行平面（control / input / video / file / cursor / audio / feedback / clipboard）共享一条已认证的 QUIC 连接（可降级为 TCP），每个平面独立流、独立优先级、独立背压。本文是 1.1.0 的完整线格式与状态机规范。
+Aerlyn Wire 是桌面远控/远程桌面场景的二进制会话协议：八个并行平面（control / input / video / file / cursor / audio / feedback / clipboard）共享一条已认证的 QUIC 连接（可降级为 TCP），每个平面独立流、独立优先级、独立背压。本文是 1.2.0 的完整线格式与状态机规范。
 
 **只有本文的数值与布局是规范性的。** 常量名指向 `src/` 中的定义处，便于逐条核对。
 
@@ -608,14 +608,14 @@ QUIC DATAGRAM 路径并行存在，用于低延迟：一帧切成 ≤ `MAX_VIDEO
 
 ### 12.1 编码
 
-控制面载荷是 UTF-8 JSON，消息身份由 JSON 内的 `type` 字符串决定（serde tag），**没有数字类型号**。注册表共 54 项：
+控制面载荷是 UTF-8 JSON，消息身份由 JSON 内的 `type` 字符串决定（serde tag），**没有数字类型号**。注册表共 55 项：
 
 ```
 AudioStart AudioStop Auth Bye Challenge ChannelHello ChannelWelcome
 ClipAccept ClipDone ClipOffer ClipPull CodecConfig ControlOwner DecodeError
 DisplayChanged DisplayList Error FileAccept FileCancel FileDelete FileDone
 FileError FileGet FileList FileListing FileMeta FileMkdir FileOffer FileRename
-Hello HostStats InputConfig InputState InputStatus Ok Ping PlanePriorities Pong PrivacyState
+Hello HostStats InputConfig InputState InputStatus Ok Ping PlanePriorities Pong PreviewSubscription PrivacyState
 Rejected RequestKeyframe Resume ResumeResult Saved Screenshot SendCad
 SessionEnded SessionInfo ShareRequest VideoAdjusted VideoConfig VideoReady
 VideoStop Welcome
@@ -629,7 +629,7 @@ VideoStop Welcome
 
 | 方向 | 消息 |
 |---|---|
-| C→H | Hello, Auth, Resume, ChannelHello, VideoConfig, VideoStop, RequestKeyframe, InputConfig, DecodeError, FileOffer, FileGet, FileList, FileCancel, ClipPull, AudioStart, AudioStop, Screenshot, SendCad, FileMkdir, FileDelete, FileRename, ShareRequest |
+| C→H | Hello, Auth, Resume, ChannelHello, VideoConfig, VideoStop, RequestKeyframe, InputConfig, DecodeError, FileOffer, FileGet, FileList, FileCancel, ClipPull, AudioStart, AudioStop, Screenshot, SendCad, FileMkdir, FileDelete, FileRename, PreviewSubscription, ShareRequest |
 | H→C | Challenge, Welcome, ResumeResult, ChannelWelcome, Rejected, VideoReady, CodecConfig, VideoAdjusted, DisplayList, DisplayChanged, InputState, InputStatus, HostStats, Saved, SessionInfo, SessionEnded, ControlOwner, PrivacyState, FileAccept, FileMeta, FileListing |
 | 双向 | Bye, Error, Ok, Ping, Pong, PlanePriorities, ClipOffer, ClipAccept, ClipDone, FileDone, FileError |
 
@@ -656,7 +656,11 @@ VideoStop Welcome
 
 ---
 
-### 12.3 PrivacyState
+### 12.3 PreviewSubscription
+
+`PreviewSubscription`（C→H）是逐 peer 的预览预算请求：`{req_id,viewer_id,max_fps,max_kbps,width,height,codec,quality}`。`max_fps` 1…240、`max_kbps` 1…1 000 000、宽高 1…8192、`quality` 0…3；主机用 `Ok` 接受或用 `Error` 拒绝/降级。状态机按 `viewer_id` 保留最新请求，最多 64 个，供主机应用裁决。
+
+### 12.3.1 PrivacyState
 
 `PrivacyState` 是主机权威、单调 revision 的隐私屏状态：`{revision u64, state u8, overlay_active bool, reason String, local_unlock_revision u64}`。`state` 为 0 off / 1 on / 2 unavailable；`revision` 必须严格递增，客户端丢弃旧 revision；`local_unlock_revision` 记录客户端本地已关闭的最近 host revision，只影响本地 overlay，不回传主机。`reason` ≤ 256 B。
 

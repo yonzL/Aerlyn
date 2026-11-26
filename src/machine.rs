@@ -6,7 +6,7 @@
 
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-use crate::control::{FileOffer, HostStats, PlanePriorities, Pong, Resume};
+use crate::control::{FileOffer, HostStats, PlanePriorities, Pong, PreviewSubscription, Resume};
 use crate::message::ControlMessage;
 use crate::privacy::PrivacyTracker;
 use crate::session::{Role, SessionState};
@@ -100,6 +100,8 @@ pub struct SessionMachine {
     pub control_owner: Option<u64>,
     /// Host-authoritative privacy state, monotonically applied on the client.
     pub privacy: PrivacyTracker,
+    /// Latest preview request per viewer, for the host application to accept/reject.
+    pub preview_subscriptions: BTreeMap<u64, PreviewSubscription>,
     /// 主机侧要求 ChannelHello 携带的会话 token；`None` 表示不校验。
     pub channel_token: Option<Vec<u8>>,
     /// Wall-clock issue time for `channel_token`.
@@ -133,6 +135,7 @@ impl SessionMachine {
             last_session_info: None,
             control_owner: None,
             privacy: PrivacyTracker::new(),
+            preview_subscriptions: BTreeMap::new(),
             channel_token: None,
             channel_token_issued_ms: 0,
             channel_token_used: BTreeSet::new(),
@@ -456,6 +459,16 @@ impl SessionMachine {
             ControlMessage::PrivacyState(state) => {
                 self.privacy.apply(state.clone());
             }
+            ControlMessage::PreviewSubscription(sub) => {
+                self.require_stream_capable(name)?;
+                sub.validate().map_err(MachineError::Protocol)?;
+                if self.preview_subscriptions.len() >= 64
+                    && !self.preview_subscriptions.contains_key(&sub.viewer_id)
+                {
+                    return Err(MachineError::Protocol("too many preview subscriptions"));
+                }
+                self.preview_subscriptions.insert(sub.viewer_id, *sub);
+            }
             ControlMessage::ShareRequest(_) => {
                 self.require_stream_capable(name)?;
                 if !self.role.can_write() {
@@ -616,7 +629,9 @@ pub fn direction_allowed(name: &str, side: Side) -> bool {
         "VideoReady" | "CodecConfig" | "VideoAdjusted" | "DisplayList" | "DisplayChanged"
         | "InputState" | "InputStatus" | "HostStats" | "Saved" | "SessionInfo" | "SessionEnded"
         | "ControlOwner" | "PrivacyState" => matches!(side, Client),
-        "FileOffer" | "FileGet" | "FileList" | "FileCancel" => matches!(side, Host),
+        "FileOffer" | "FileGet" | "FileList" | "FileCancel" | "PreviewSubscription" => {
+            matches!(side, Host)
+        }
         "FileAccept" | "FileMeta" | "FileListing" => matches!(side, Client),
         "FileDone" | "FileError" => true,
         "ClipPull" | "AudioStart" | "AudioStop" => matches!(side, Host),
@@ -633,7 +648,7 @@ mod tests {
     use super::*;
     use crate::control::{
         AudioStart, FileCancel, FileDone, FileGet, FileList, FileOffer, InputStatus, Ping,
-        PlanePriorities, PrivacyState, Resume, VideoStop,
+        PlanePriorities, PreviewSubscription, PrivacyState, Resume, VideoStop,
     };
     use crate::message::{VideoAdjusted, VideoConfig, VideoReady, CONTROL_MESSAGE_TYPES};
     use serde_json::json;
@@ -838,6 +853,27 @@ mod tests {
         c.handle(&ControlMessage::PrivacyState(state(2))).unwrap();
         assert_eq!(c.privacy.current().unwrap().revision, 2);
         assert!(c.privacy.overlay_visible());
+    }
+
+    #[test]
+    fn host_keeps_latest_preview_subscription_per_viewer() {
+        let mut h = host();
+        let sub = |fps| PreviewSubscription {
+            req_id: 1,
+            viewer_id: 9,
+            max_fps: fps,
+            max_kbps: 4_000,
+            width: 1280,
+            height: 720,
+            codec: 0,
+            quality: 1,
+        };
+        h.handle(&ControlMessage::PreviewSubscription(sub(30)))
+            .unwrap();
+        h.handle(&ControlMessage::PreviewSubscription(sub(60)))
+            .unwrap();
+        assert_eq!(h.preview_subscriptions.len(), 1);
+        assert_eq!(h.preview_subscriptions[&9].max_fps, 60);
     }
 
     #[test]

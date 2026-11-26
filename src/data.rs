@@ -423,15 +423,17 @@ pub struct FileAck {
 }
 
 impl FileAck {
-    pub fn encode(&self) -> [u8; 10] {
-        let mut out = [0u8; 10];
+    pub const LEN: usize = 10;
+
+    pub fn encode(&self) -> [u8; Self::LEN] {
+        let mut out = [0u8; Self::LEN];
         out[0..8].copy_from_slice(&self.received_upto.to_be_bytes());
         out[8..10].copy_from_slice(&self.credit.to_be_bytes());
         out
     }
 
     pub fn decode(buf: &[u8]) -> Result<Self, InputError> {
-        if buf.len() != 10 {
+        if buf.len() != Self::LEN {
             return Err(InputError::TooShort);
         }
         Ok(Self {
