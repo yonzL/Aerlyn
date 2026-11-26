@@ -270,8 +270,10 @@ pub struct CursorPos {
 }
 
 impl CursorPos {
-    pub fn encode(&self) -> [u8; 15] {
-        let mut out = [0u8; 15];
+    pub const LEN: usize = 15;
+
+    pub fn encode(&self) -> [u8; Self::LEN] {
+        let mut out = [0u8; Self::LEN];
         out[0..4].copy_from_slice(&self.x.to_be_bytes());
         out[4..8].copy_from_slice(&self.y.to_be_bytes());
         out[8..12].copy_from_slice(&self.shape_id.to_be_bytes());
@@ -281,7 +283,7 @@ impl CursorPos {
     }
 
     pub fn decode(buf: &[u8]) -> Result<Self, InputError> {
-        if buf.len() != 15 {
+        if buf.len() != Self::LEN {
             return Err(InputError::TooShort);
         }
         Ok(Self {
@@ -522,15 +524,17 @@ pub struct AudioHeader {
 }
 
 impl AudioHeader {
-    pub fn encode(&self) -> [u8; 12] {
-        let mut out = [0u8; 12];
+    pub const LEN: usize = 12;
+
+    pub fn encode(&self) -> [u8; Self::LEN] {
+        let mut out = [0u8; Self::LEN];
         out[0..4].copy_from_slice(&self.seq.to_be_bytes());
         out[4..12].copy_from_slice(&self.pts_us.to_be_bytes());
         out
     }
 
     pub fn decode(buf: &[u8]) -> Result<Self, InputError> {
-        if buf.len() < 12 {
+        if buf.len() < Self::LEN {
             return Err(InputError::TooShort);
         }
         Ok(Self {

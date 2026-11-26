@@ -7,6 +7,7 @@
 | 单元 | `src/**` 的 `#[cfg(test)]` | 编码/解码、窗口、边界、状态机 |
 | 协议一致性 | `tests/spec_consistency.rs` | 文档条目、消息注册表、错误码、字段表 |
 | 平面回环 | `tests/plane_loopback.rs` | 六平面二进制帧 |
+| 字节快照 | `tests/golden_bytes.rs` | 固定头长度断言 + golden bytes |
 | 流程 | `tests/flow*.rs` | 握手、TicketStore、会话流程 |
 | 传输替身 | `src/memory.rs` | `MemoryConnection` / `ChoppyConnection` 分帧 |
 
