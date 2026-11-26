@@ -621,6 +621,7 @@ mod tests {
                     scale: 100,
                     primary: false,
                     name: "left".into(),
+                    display_key: 2,
                 }],
             }),
             ControlMessage::DisplayChanged(DisplayChanged {

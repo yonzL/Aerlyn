@@ -67,6 +67,9 @@ pub struct DisplayInfo {
     pub primary: bool,
     #[serde(default)]
     pub name: String,
+    /// Stable identity across index/geometry changes; 0 means unknown.
+    #[serde(default)]
+    pub display_key: u64,
 }
 
 fn default_scale() -> u16 {
@@ -657,6 +660,21 @@ mod tests {
     }
 
     #[test]
+    fn display_key_defaults_to_zero_and_is_stable() {
+        let without_key: DisplayInfo = serde_json::from_str(
+            r#"{"id":0,"x":0,"y":0,"w":1920,"h":1080,"scale":100,"primary":true,"name":"main"}"#,
+        )
+        .unwrap();
+        assert_eq!(without_key.display_key, 0);
+
+        let mut moved = without_key;
+        moved.id = 3;
+        moved.x = 100;
+        moved.w = 1280;
+        assert_eq!(moved.display_key, 0);
+    }
+
+    #[test]
     fn display_roundtrip() {
         let list = DisplayList {
             displays: vec![DisplayInfo {
@@ -668,6 +686,7 @@ mod tests {
                 scale: 100,
                 primary: true,
                 name: "main".into(),
+                display_key: 7,
             }],
         };
         let json = serde_json::to_string(&list).unwrap();
