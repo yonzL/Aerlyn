@@ -4,7 +4,7 @@
 //! [`ControlMessage`]，返回需要立即回发的控制消息（目前是 Ping → Pong）。
 //! 未知 type 按 V3 §8 忽略，不改变状态。
 
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use crate::control::{FileOffer, HostStats, PlanePriorities, Pong, Resume};
 use crate::message::ControlMessage;
@@ -105,7 +105,12 @@ pub struct SessionMachine {
     pub channel_token_used: BTreeSet<u8>,
     /// Caller-supplied wall clock used for token TTL checks.
     pub now_ms: u64,
+    /// Unknown typed controls retained for the embedding application.
+    unknown_messages: VecDeque<ControlMessage>,
 }
+
+/// Upper bound for retained unknown controls; oldest entries are discarded.
+pub const MAX_UNKNOWN_MESSAGES: usize = 64;
 
 impl SessionMachine {
     pub fn new(side: Side, role: Role) -> Self {
@@ -128,7 +133,17 @@ impl SessionMachine {
             channel_token_issued_ms: 0,
             channel_token_used: BTreeSet::new(),
             now_ms: 0,
+            unknown_messages: VecDeque::new(),
         }
+    }
+
+    /// Unknown typed controls are forwarded instead of silently dropped.
+    pub fn take_unknown(&mut self) -> Vec<ControlMessage> {
+        self.unknown_messages.drain(..).collect()
+    }
+
+    pub fn unknown_count(&self) -> usize {
+        self.unknown_messages.len()
     }
 
     /// 主机在握手完成后绑定会话 token；之后 ChannelHello 必须携带相同 token。
@@ -250,6 +265,10 @@ impl SessionMachine {
     pub fn handle(&mut self, msg: &ControlMessage) -> Result<Vec<ControlMessage>, MachineError> {
         let name = msg.type_name();
         if let ControlMessage::Unknown { .. } = msg {
+            if self.unknown_messages.len() == MAX_UNKNOWN_MESSAGES {
+                self.unknown_messages.pop_front();
+            }
+            self.unknown_messages.push_back(msg.clone());
             return Ok(Vec::new());
         }
         if !direction_allowed(name, self.side) {
@@ -610,6 +629,7 @@ mod tests {
         PlanePriorities, Resume, VideoStop,
     };
     use crate::message::{VideoAdjusted, VideoConfig, VideoReady, CONTROL_MESSAGE_TYPES};
+    use serde_json::json;
 
     fn client() -> SessionMachine {
         SessionMachine::new(Side::Client, Role::Control)
@@ -624,6 +644,23 @@ mod tests {
             ..VideoConfig::default()
         }))
         .unwrap();
+    }
+
+    #[test]
+    fn unknown_controls_are_forwarded_and_bounded() {
+        let mut m = client();
+        for i in 0..(MAX_UNKNOWN_MESSAGES + 2) {
+            let msg = ControlMessage::Unknown {
+                type_name: "FutureControl".to_string(),
+                raw: json!({ "i": i }),
+            };
+            m.handle(&msg).unwrap();
+        }
+        assert_eq!(m.unknown_count(), MAX_UNKNOWN_MESSAGES);
+        let forwarded = m.take_unknown();
+        assert_eq!(forwarded.len(), MAX_UNKNOWN_MESSAGES);
+        assert_eq!(forwarded.first().unwrap().type_name(), "FutureControl");
+        assert_eq!(m.unknown_count(), 0);
     }
 
     #[test]

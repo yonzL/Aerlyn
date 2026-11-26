@@ -616,7 +616,7 @@ SessionEnded SessionInfo ShareRequest VideoAdjusted VideoConfig VideoReady
 VideoStop Welcome
 ```
 
-结构性说明：`Error` 的载荷结构体名为 `ErrorReply`，`Ok` 为 `OkReply`，`FileError` 为 `FileErrorInfo`。**未知 `type` 必须被保留并跳过**，不得断开会话——新增类型只追加，不重排、不复用旧名。
+结构性说明：`Error` 的载荷结构体名为 `ErrorReply`，`Ok` 为 `OkReply`，`FileError` 为 `FileErrorInfo`。**未知 `type` 必须保留并交给上层**：`SessionMachine` 将原始 JSON 放入有界队列（最多 64 条，超出丢弃最旧），应用可用 `take_unknown()` 取走；不得断开会话——新增类型只追加，不重排、不复用旧名。
 
 ### 12.2 方向表
 
@@ -720,7 +720,7 @@ VideoStop Welcome
 |---|---|
 | INV-1 | 一次 `send` 一条消息、一次 `recv` 一条消息；半条消息报 `UnexpectedEof`，禁止二次分帧 |
 | INV-2 | 多流模式下控制面只从 ch0 读取；控制读端不得收到任何非 ch0 字节 |
-| INV-3 | 未知 control `type` 与未知 TLV tag 必须保留并跳过，不得导致断开 |
+| INV-3 | 未知 control `type` 必须保留并交给上层（有界队列），未知 TLV tag 必须保留并跳过；两者都不得导致断开 |
 | INV-4 | 帧头 `len` 与实际载荷长度一致；超 `MAX_FRAME_LEN`/`MAX_CONTROL_LEN` 直接拒绝 |
 | INV-5 | credit 只能由接收方声明；发送方不得超出在途额度 |
 | INV-6 | 文件/剪贴板位图为 LSB-first，块 *i* ↔ `byte[i/8] & (1 << (i%8))` |

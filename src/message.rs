@@ -391,6 +391,11 @@ pub enum ControlMessage {
     Unknown { type_name: String, raw: Value },
 }
 
+// `serde_json::Value` has a total equality relation for the finite JSON values
+// this protocol accepts, but it does not implement `Eq` itself. This marker
+// keeps `SessionMachine` (which retains unknown messages) `Eq`.
+impl Eq for ControlMessage {}
+
 control_dispatch! {
     AudioStart => AudioStart,
     AudioStop => AudioStop,
