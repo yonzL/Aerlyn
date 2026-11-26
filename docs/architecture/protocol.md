@@ -259,7 +259,21 @@ ResumeTicket { id: u64, nonce: [16]u8, exp_ms: u64 }
 | 16 | `VIDEO_AV1` | AV1 |
 | 34 | `VIDEO_RAW` | 未压缩 BGRA 回退 |
 
-其余位（输入注入、文件、剪贴板、音频、多显示器、截图、统计、心跳、优先级、多会话共享等）由实现按产品策略分配并在同一字段协商；**未知位必须原样保留**，不得因存在未知位而拒绝会话。
+功能能力位与 `version` 独立，本规范定义：
+
+| 位 | 常量 | 含义 |
+|---|---|---|
+| 40 | `FEATURE_PRIVACY` | 隐私屏状态机与本地输入阻断 |
+| 41 | `FEATURE_DISPLAY_MODES` | 显示模式枚举/切换 |
+| 42 | `FEATURE_TEXT_INPUT` | 长文本注入 |
+| 43 | `FEATURE_PREVIEW` | 逐 peer 预览订阅 |
+| 44 | `FEATURE_RESOLUTION_PREF` | 按 `display_key` 持久化分辨率偏好 |
+| 45 | `FEATURE_FPS15` | 15 fps 档 |
+| 46 | `FEATURE_BANDWIDTH` | 逐 peer 带宽预算 |
+| 47 | `FEATURE_FILE_BROWSER` | 文件浏览 |
+| 48 | `FEATURE_FILE_CLIPBOARD` | 文件剪贴板 |
+
+其余位由实现按产品策略分配并在同一字段协商；**未知位必须原样保留**，不得因存在未知位而拒绝会话。旧端忽略未实现的功能位，新端只打开已实现的功能位；功能位不得用来替代协议版本判断。
 
 ### 5.2 编解码能力描述
 

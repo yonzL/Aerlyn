@@ -41,8 +41,10 @@ pub use audio::{
 };
 pub use capabilities::{CodecAbility, PreferCodec, SupportedDecoding, SupportedEncoding};
 pub use caps::{
-    bit_for, from_bits as video_caps_from_bits, VideoCaps, VIDEO_AV1, VIDEO_H264, VIDEO_H265,
-    VIDEO_RAW, VIDEO_VP8, VIDEO_VP9,
+    bit_for, from_bits as video_caps_from_bits, FeatureCaps, VideoCaps, FEATURE_BANDWIDTH,
+    FEATURE_DISPLAY_MODES, FEATURE_FILE_BROWSER, FEATURE_FILE_CLIPBOARD, FEATURE_FPS15,
+    FEATURE_PREVIEW, FEATURE_PRIVACY, FEATURE_RESOLUTION_PREF, FEATURE_TEXT_INPUT, VIDEO_AV1,
+    VIDEO_H264, VIDEO_H265, VIDEO_RAW, VIDEO_VP8, VIDEO_VP9,
 };
 pub use channel::{
     Frame, CH_AUDIO, CH_CLIPBOARD, CH_CONTROL, CH_CURSOR, CH_FEEDBACK, CH_FILE, CH_INPUT, CH_VIDEO,

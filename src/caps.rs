@@ -18,6 +18,67 @@ pub const VIDEO_AV1: u64 = 1 << 16;
 /// 支持 RAW 兜底。
 pub const VIDEO_RAW: u64 = 1 << 34;
 
+/// 支持隐私屏状态机与本地输入阻断。
+pub const FEATURE_PRIVACY: u64 = 1 << 40;
+/// 支持显示模式枚举与切换。
+pub const FEATURE_DISPLAY_MODES: u64 = 1 << 41;
+/// 支持长文本注入（上限由 `MAX_INPUT_TEXT` 声明）。
+pub const FEATURE_TEXT_INPUT: u64 = 1 << 42;
+/// 支持逐 peer 预览订阅。
+pub const FEATURE_PREVIEW: u64 = 1 << 43;
+/// 支持按 `display_key` 持久化分辨率偏好。
+pub const FEATURE_RESOLUTION_PREF: u64 = 1 << 44;
+/// 支持 15 fps 档。
+pub const FEATURE_FPS15: u64 = 1 << 45;
+/// 支持逐 peer 带宽预算。
+pub const FEATURE_BANDWIDTH: u64 = 1 << 46;
+/// 支持文件浏览。
+pub const FEATURE_FILE_BROWSER: u64 = 1 << 47;
+/// 支持文件剪贴板。
+pub const FEATURE_FILE_CLIPBOARD: u64 = 1 << 48;
+
+/// 功能能力位的类型化视图。
+///
+/// 功能位与 `version` 无关：新端只打开自己实现的功能位，旧端未识别的位
+/// 必须原样保留；不得因为出现未知功能位而拒绝握手。
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct FeatureCaps(u64);
+
+impl FeatureCaps {
+    pub const NONE: Self = Self(0);
+    pub const ALL: Self = Self(
+        FEATURE_PRIVACY
+            | FEATURE_DISPLAY_MODES
+            | FEATURE_TEXT_INPUT
+            | FEATURE_PREVIEW
+            | FEATURE_RESOLUTION_PREF
+            | FEATURE_FPS15
+            | FEATURE_BANDWIDTH
+            | FEATURE_FILE_BROWSER
+            | FEATURE_FILE_CLIPBOARD,
+    );
+
+    pub const fn from_bits(bits: u64) -> Self {
+        Self(bits)
+    }
+
+    pub const fn bits(self) -> u64 {
+        self.0
+    }
+
+    pub const fn contains(self, bit: u64) -> bool {
+        self.0 & bit == bit
+    }
+
+    pub const fn with(self, bit: u64) -> Self {
+        Self(self.0 | bit)
+    }
+
+    pub const fn without(self, bit: u64) -> Self {
+        Self(self.0 & !bit)
+    }
+}
+
 /// 视频能力位的类型化视图；保留未识别位，`bits()` 可原样写回。
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct VideoCaps(u64);
@@ -83,6 +144,19 @@ mod tests {
         assert!(caps.supports(Codec::Av1));
         assert!(!caps.supports(Codec::Vp9));
         assert_eq!(caps.bits() & (1 << 40), 1 << 40);
+    }
+
+    #[test]
+    fn feature_bits_are_separate_from_video_bits_and_unknown_bits_survive() {
+        let caps = FeatureCaps::from_bits(FEATURE_PRIVACY | FEATURE_PREVIEW | (1 << 60));
+        assert!(caps.contains(FEATURE_PRIVACY));
+        assert!(caps.contains(FEATURE_PREVIEW));
+        assert!(!caps.contains(FEATURE_FILE_BROWSER));
+        assert_eq!(caps.bits() & (1 << 60), 1 << 60);
+        assert_eq!(
+            FeatureCaps::from_bits(VIDEO_H264 | FEATURE_PRIVACY).bits(),
+            VIDEO_H264 | FEATURE_PRIVACY
+        );
     }
 
     #[test]

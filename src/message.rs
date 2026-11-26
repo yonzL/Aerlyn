@@ -43,6 +43,11 @@ impl Hello {
     pub fn video_caps(&self) -> crate::caps::VideoCaps {
         crate::caps::VideoCaps::from_bits(self.caps)
     }
+
+    /// 功能能力位与 `version` 独立；未知位由 `FeatureCaps` 原样保留。
+    pub fn feature_caps(&self) -> crate::caps::FeatureCaps {
+        crate::caps::FeatureCaps::from_bits(self.caps)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -58,6 +63,10 @@ pub struct Challenge {
 impl Challenge {
     pub fn video_caps(&self) -> crate::caps::VideoCaps {
         crate::caps::VideoCaps::from_bits(self.caps)
+    }
+
+    pub fn feature_caps(&self) -> crate::caps::FeatureCaps {
+        crate::caps::FeatureCaps::from_bits(self.caps)
     }
 }
 
@@ -84,6 +93,10 @@ pub struct Welcome {
 impl Welcome {
     pub fn video_caps(&self) -> crate::caps::VideoCaps {
         crate::caps::VideoCaps::from_bits(self.caps)
+    }
+
+    pub fn feature_caps(&self) -> crate::caps::FeatureCaps {
+        crate::caps::FeatureCaps::from_bits(self.caps)
     }
 }
 
