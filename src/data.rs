@@ -294,6 +294,126 @@ impl CursorPos {
     }
 }
 
+/// Semantic cursor shapes aligned with the usual desktop/CSS set.
+///
+/// The wire value is a `u16`; unknown values are preserved so peers can add
+/// shapes without a protocol break. `CursorShape` remains the bitmap fallback.
+pub mod cursor_semantic {
+    pub const DEFAULT: u16 = 0;
+    pub const ARROW: u16 = 1;
+    pub const IBEAM: u16 = 2;
+    pub const CROSSHAIR: u16 = 3;
+    pub const POINTING_HAND: u16 = 4;
+    pub const RESIZE_N: u16 = 5;
+    pub const RESIZE_S: u16 = 6;
+    pub const RESIZE_E: u16 = 7;
+    pub const RESIZE_W: u16 = 8;
+    pub const RESIZE_NE: u16 = 9;
+    pub const RESIZE_NW: u16 = 10;
+    pub const RESIZE_SE: u16 = 11;
+    pub const RESIZE_SW: u16 = 12;
+    pub const RESIZE_EW: u16 = 13;
+    pub const RESIZE_NS: u16 = 14;
+    pub const RESIZE_ALL: u16 = 15;
+    pub const NOT_ALLOWED: u16 = 16;
+    pub const GRAB: u16 = 17;
+    pub const GRABBING: u16 = 18;
+    pub const HELP: u16 = 19;
+    pub const WAIT: u16 = 20;
+    pub const PROGRESS: u16 = 21;
+    pub const CONTEXT_MENU: u16 = 22;
+    pub const CELL: u16 = 23;
+    pub const VERTICAL_TEXT: u16 = 24;
+    pub const ALIAS: u16 = 25;
+    pub const COPY: u16 = 26;
+    pub const MOVE: u16 = 27;
+    pub const NO_DROP: u16 = 28;
+}
+
+/// How the client should render the cursor.
+pub mod cursor_render_mode {
+    pub const LEGACY: u8 = 0;
+    pub const SEPARATE: u8 = 1;
+    pub const EMBEDDED: u8 = 2;
+    pub const HIDDEN: u8 = 3;
+    pub const UNKNOWN: u8 = 4;
+}
+
+/// Why the cursor is hidden when `render_mode == HIDDEN`.
+pub mod cursor_hidden_reason {
+    pub const NONE: u8 = 0;
+    pub const SYSTEM_HIDDEN: u8 = 1;
+    pub const SYSTEM_SUPPRESSED: u8 = 2;
+    pub const NO_POINTING_DEVICE: u8 = 3;
+    pub const SAMPLING_FAILED: u8 = 4;
+    pub const SECURE_DESKTOP_PENDING: u8 = 5;
+    pub const UNKNOWN: u8 = 255;
+}
+
+/// Semantic cursor state; `CursorPos` remains the bitmap-compatible message.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CursorState {
+    pub x: i32,
+    pub y: i32,
+    pub semantic: u16,
+    pub render_mode: u8,
+    pub hidden_reason: u8,
+    pub visual_offset_x: i16,
+    pub visual_offset_y: i16,
+    pub display_id: u8,
+    pub position_valid: bool,
+    pub visible: bool,
+    pub seq: u32,
+}
+
+impl CursorState {
+    pub const LEN: usize = 22;
+    pub const FLAG_POSITION_VALID: u8 = 1 << 0;
+    pub const FLAG_VISIBLE: u8 = 1 << 1;
+
+    pub fn encode(&self) -> [u8; Self::LEN] {
+        let mut out = [0u8; Self::LEN];
+        out[0..4].copy_from_slice(&self.x.to_be_bytes());
+        out[4..8].copy_from_slice(&self.y.to_be_bytes());
+        out[8..10].copy_from_slice(&self.semantic.to_be_bytes());
+        out[10] = self.render_mode;
+        out[11] = self.hidden_reason;
+        out[12..14].copy_from_slice(&self.visual_offset_x.to_be_bytes());
+        out[14..16].copy_from_slice(&self.visual_offset_y.to_be_bytes());
+        out[16] = self.display_id;
+        let mut flags = 0u8;
+        if self.position_valid {
+            flags |= Self::FLAG_POSITION_VALID;
+        }
+        if self.visible {
+            flags |= Self::FLAG_VISIBLE;
+        }
+        out[17] = flags;
+        out[18..22].copy_from_slice(&self.seq.to_be_bytes());
+        out
+    }
+
+    pub fn decode(buf: &[u8]) -> Result<Self, InputError> {
+        if buf.len() != Self::LEN {
+            return Err(InputError::TooShort);
+        }
+        let flags = buf[17];
+        Ok(Self {
+            x: get_i32(buf, 0),
+            y: get_i32(buf, 4),
+            semantic: u16::from_be_bytes([buf[8], buf[9]]),
+            render_mode: buf[10],
+            hidden_reason: buf[11],
+            visual_offset_x: i16::from_be_bytes([buf[12], buf[13]]),
+            visual_offset_y: i16::from_be_bytes([buf[14], buf[15]]),
+            display_id: buf[16],
+            position_valid: flags & Self::FLAG_POSITION_VALID != 0,
+            visible: flags & Self::FLAG_VISIBLE != 0,
+            seq: u32::from_be_bytes([buf[18], buf[19], buf[20], buf[21]]),
+        })
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FileAck {
     pub received_upto: u64,
@@ -510,6 +630,25 @@ mod tests {
             visible: true,
         };
         assert_eq!(CursorPos::decode(&p.encode()).unwrap(), p);
+    }
+
+    #[test]
+    fn cursor_state_roundtrip_preserves_unknown_semantics() {
+        let s = CursorState {
+            x: -12,
+            y: 34,
+            semantic: 999,
+            render_mode: cursor_render_mode::SEPARATE,
+            hidden_reason: cursor_hidden_reason::NONE,
+            visual_offset_x: -3,
+            visual_offset_y: 5,
+            display_id: 2,
+            position_valid: true,
+            visible: true,
+            seq: 17,
+        };
+        assert_eq!(CursorState::decode(&s.encode()).unwrap(), s);
+        assert_eq!(s.encode().len(), CursorState::LEN);
     }
 
     #[test]

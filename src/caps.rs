@@ -36,6 +36,8 @@ pub const FEATURE_BANDWIDTH: u64 = 1 << 46;
 pub const FEATURE_FILE_BROWSER: u64 = 1 << 47;
 /// 支持文件剪贴板。
 pub const FEATURE_FILE_CLIPBOARD: u64 = 1 << 48;
+/// 支持 `CURSOR_STATE` 语义光标。
+pub const FEATURE_SEMANTIC_CURSOR: u64 = 1 << 49;
 
 /// 功能能力位的类型化视图。
 ///
@@ -55,7 +57,8 @@ impl FeatureCaps {
             | FEATURE_FPS15
             | FEATURE_BANDWIDTH
             | FEATURE_FILE_BROWSER
-            | FEATURE_FILE_CLIPBOARD,
+            | FEATURE_FILE_CLIPBOARD
+            | FEATURE_SEMANTIC_CURSOR,
     );
 
     pub const fn from_bits(bits: u64) -> Self {

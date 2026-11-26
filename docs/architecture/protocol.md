@@ -436,6 +436,9 @@ QUIC DATAGRAM 路径并行存在，用于低延迟：一帧切成 ≤ `MAX_VIDEO
 | `CURSOR_SHAPE` | 1 | 15 B 头 `cursor_id u32\|generation u16\|hx i16\|hy i16\|width u16\|height u16\|format u8` + 形状数据 |
 | `CURSOR_RESET` | 2 | 2 B（`generation u16`），表示回到默认光标 |
 | `CURSOR_POS` | 3 | 15 B `x i32\|y i32\|shape_id u32\|generation u16\|visible u8` |
+| `CURSOR_STATE` | 4 | 22 B `x i32\|y i32\|semantic u16\|render_mode u8\|hidden_reason u8\|visual_offset_x i16\|visual_offset_y i16\|display_id u8\|flags u8\|seq u32` |
+
+`CURSOR_STATE` 是语义光标；位图 `CURSOR_SHAPE`/`CURSOR_POS` 仍是 fallback。`semantic` 为 0…28 的内置形状（0 default、1 arrow、2 ibeam、…、28 no-drop），未知值原样保留；`render_mode` 为 0 legacy/1 separate/2 embedded/3 hidden/4 unknown；`hidden_reason` 为 0 none/1 system-hidden/2 system-suppressed/3 no-pointing-device/4 sampling-failed/5 secure-desktop-pending/255 unknown；`flags` bit0 position-valid、bit1 visible。能力位 `FEATURE_SEMANTIC_CURSOR = 1<<49`。
 
 形状 `format`：`0` BGRA8（数据长 `w*h*4`）、`1` PNG（≤ 1 MiB）、`2` 掩码（`2 * ceil(w/8) * h`）。`w`/`h` 取值 1…1024。形状数据总长 ≤ `MAX_CURSOR_BYTES = 1 MiB`；`generation` 递增，客户端丢弃旧代形状。
 
@@ -742,7 +745,7 @@ VideoStop Welcome
 | ch1 input | 1 | `INPUT_BATCH` |
 | ch2 video | 0 / 1 / 2 | `STREAM_HELLO` / `VIDEO_FRAME` / `STREAM_END` |
 | ch3 file | 1 / 2 / 3 / 4 / 5 / 6 | `FILE_CHUNK` / `FILE_ACK` / `FILE_END` / `FILE_ERROR` / `FILE_CHUNK_ZSTD` / `FILE_RESUME_HINT` |
-| ch4 cursor | 1 / 2 / 3 | `CURSOR_SHAPE` / `CURSOR_RESET` / `CURSOR_POS` |
+| ch4 cursor | 1 / 2 / 3 / 4 | `CURSOR_SHAPE` / `CURSOR_RESET` / `CURSOR_POS` / `CURSOR_STATE` |
 | ch5 audio | 1 / 2 | `AUDIO_FMT` / `AUDIO_FRAME` |
 | ch6 feedback | 1 / 2 / 3 | `FRAME_ACK` / `NET_REPORT` / `SLICE_NACK` |
 | ch7 clipboard | 1 / 2 | `CLIP_DATA` / `CLIP_ACK` |

@@ -409,6 +409,7 @@ pub mod type_id {
         pub const CURSOR_SHAPE: u16 = 1;
         pub const CURSOR_RESET: u16 = 2;
         pub const CURSOR_POS: u16 = 3;
+        pub const CURSOR_STATE: u16 = 4;
     }
     pub mod audio {
         pub const AUDIO_FMT: u16 = 1;
