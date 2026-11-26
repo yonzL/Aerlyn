@@ -6,13 +6,13 @@ Aerlyn Wire 有两个独立版本概念：**库版本**（Cargo package）与 **
 
 | 项目 | 值 |
 |---|---|
-| crate 版本 | `1.1.0` |
+| crate 版本 | `1.2.0` |
 | wire `proto_version` | `400` |
 | ALPN | `aerlyn/4` / `aerlyn/4-tcp` |
 | 冻结基线 | `v1.0.0` |
-| 当前协议标签 | `v1.1.0` |
+| 当前协议标签 | `v1.2.0` |
 
-1.1.0 只增加文件平面的双向流语义，不改 wire 版本号；`400` 仍表示 1.x 线格式。
+1.2.0 增加功能能力位、未知消息转发、稳定显示器身份、语义光标、隐私态、逐 peer 预览订阅与 golden byte 锁定；不改 wire 版本号，`400` 仍表示 1.x 线格式。
 
 ## 1.x 规则
 
@@ -24,7 +24,7 @@ Aerlyn Wire 有两个独立版本概念：**库版本**（Cargo package）与 **
 ## 库版本与 wire 版本的关系
 
 ```text
-库版本 1.1.0  ──  package / API / 文档
+库版本 1.2.0  ──  package / API / 文档
 wire 400      ──  线格式 / 消息 ID / 字段
 ```
 
@@ -35,10 +35,10 @@ wire 400      ──  线格式 / 消息 ID / 字段
 - standalone 仓库：`git@github.com:yonzL/Aerlyn.git`。
 - 产品通过 Git tag 依赖，不通过本地路径：
   ```toml
-  aerlyn-wire = { git = "ssh://git@github.com/yonzL/Aerlyn.git", tag = "v1.1.0" }
+  aerlyn-wire = { git = "ssh://git@github.com/yonzL/Aerlyn.git", tag = "v1.2.0" }
   ```
 - 发布新 tag 后，宿主更新依赖并刷新 `Cargo.lock`。
-- `v1.0.0` 是冻结基线，不重写历史；`v1.1.0` 是当前协议版本。
+- `v1.0.0` 是冻结基线，不重写历史；`v1.2.0` 是当前协议版本。
 
 ## 文档变更
 

@@ -6,7 +6,7 @@
 
 ```toml
 [dependencies]
-aerlyn-wire = { git = "ssh://git@github.com/yonzL/Aerlyn.git", tag = "v1.1.0" }
+aerlyn-wire = { git = "ssh://git@github.com/yonzL/Aerlyn.git", tag = "v1.2.0" }
 ```
 
 本 crate 不提供 socket、线程、编码器、文件系统或 UI。宿主必须提供 `MessageIo`，并按需实现外部 `Transport` 扩展。
